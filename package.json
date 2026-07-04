@@ -1,0 +1,11 @@
+{
+  "name": "yushoujin",
+  "version": "1.0.0",
+  "description": "御守金 - 階層式家庭記帳系統",
+  "scripts": {
+    "start": "serve . -l $PORT --cors"
+  },
+  "dependencies": {
+    "serve": "^14.2.0"
+  }
+}
