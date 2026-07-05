@@ -591,6 +591,12 @@
                         </div>
                     </div>
 
+                    <!-- 新增：醒目顯示目前編列月份 -->
+                    <div class="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 mb-6 flex items-center justify-center shadow-sm">
+                        <span class="text-2xl mr-2">📅</span>
+                        <h3 class="text-lg md:text-xl font-black text-indigo-800 tracking-wider" id="budget-current-month-display">目前編列月份：載入中...</h3>
+                    </div>
+
                     <!-- 預算自動合計狀態看板 -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100 mb-6">
                         <div class="flex items-center justify-between p-2.5 bg-white/80 rounded-xl shadow-sm">
@@ -617,8 +623,8 @@
                     <div class="hidden md:flex justify-between items-center px-4 mb-3 text-[11px] font-semibold text-slate-400 border-b border-slate-100 pb-2">
                         <span>分類項目名稱</span>
                         <div class="flex space-x-8 lg:space-x-16 pr-2">
-                            <span>上月編列額度</span>
-                            <span class="pr-2">本月設定額度</span>
+                            <span>去年編列額度</span>
+                            <span class="pr-2">今年編列額度</span>
                         </div>
                     </div>
 
@@ -1228,22 +1234,30 @@ function handleBiDirectionalSync(spreadsheet, localData) {
     <script>
         const CATEGORY_MAP = {
             expense: {
-                "餐飲飲食": ["伙食", "外食"],
-                "日常生活": ["日用品", "3C產品", "家電", "家用品維修", "置裝", "書籍", "雜費"],
-                "交通出行": ["汽機車油錢", "汽機車停車", "智慧卡儲值", "大眾運輸", "汽機車稅金", "汽機車保險", "汽機車維護"],
-                "育兒教育": ["保母費/學費", "補習班", "嬰幼兒伙食", "嬰幼兒日用品"],
-                "休閒娛樂": ["健身運動", "休閒娛樂", "交際應酬", "國內旅遊", "國外旅遊", "進修教育"],
-                "居家住宅": ["水", "電", "瓦斯", "電信", "有線電視", "寬頻網路", "房屋稅金", "房屋租金", "房屋貸款", "房屋修繕", "大樓管理費"],
-                "醫療保險": ["健保醫療", "自費醫療", "人壽保險", "公保", "健保"],
-                "家庭孝親": ["零用錢", "孝親費", "父母照護費"],
-                "稅務規費": ["退撫基金", "綜所稅", "國外投資雜費"],
-                "公務代墊": ["公務代墊", "國旅卡代墊"]
+                "飲食": ["食材", "外食"],
+                "生活消費": ["日用品", "居家用品", "置裝", "書籍", "健身運動"],
+                "耐久財": ["3C產品", "家電", "家具"],
+                "休閒與社交": ["休閒娛樂", "交際應酬", "禮金", "捐款", "訂閱服務"],
+                "旅遊": ["國內旅遊", "國外旅遊"],
+                "教育": ["學雜費", "補習班", "進修教育"],
+                "醫療": ["健保醫療", "自費醫療"],
+                "交通運輸": ["大眾運輸", "智慧卡儲值", "汽機車油錢", "汽機車停車", "汽機車維護", "汽機車保險", "汽機車稅金"],
+                "居住": ["房屋租金", "房屋貸款", "房屋修繕", "居家用品維修", "大樓管理費", "房屋稅金"],
+                "水電通訊": ["水", "電", "瓦斯", "電信", "寬頻網路", "有線電視"],
+                "育兒": ["保母費", "嬰幼兒伙食", "嬰幼兒日用品"],
+                "家庭": ["零用錢", "孝親費", "父母照護費"],
+                "保險與退休": ["人壽保險", "公保", "健保", "退撫基金"],
+                "稅務": ["綜合所得稅"],
+                "投資": ["國外投資雜費", "投資手續費"],
+                "其他": ["公務代墊", "國旅卡代墊", "寵物", "雜費", "其他未分類支出"]
             },
             income: {
-                "工作薪資": ["薪資", "年終獎金", "考績獎金", "不休假獎金", "加班費", "差旅費"],
-                "獎助福利": ["國旅卡補助", "公司禮金", "公保補助", "國家補助"],
-                "投資理財": ["活存利息", "優存利息", "定存利息", "股票利息", "租金收入"],
-                "其他收入": ["現金回饋", "中獎獎金", "保險理賠金", "拍賣收入", "代墊收入", "贊助還款", "其他收入"]
+                "工作收入": ["薪資", "加班費", "差旅費"],
+                "獎金": ["年終獎金", "考績獎金", "不休假獎金", "公司禮金"],
+                "補助": ["國旅卡補助", "公保補助", "國家補助"],
+                "投資收益": ["活存利息", "定存利息", "股票配息", "投資獲利"],
+                "租賃收入": ["租金收入"],
+                "其他收入": ["現金回饋", "保險理賠金", "中獎獎金", "拍賣收入", "退款", "退稅", "代墊收入", "贊助還款", "其他收入"]
             }
         };
 
@@ -1429,6 +1443,11 @@ function handleBiDirectionalSync(spreadsheet, localData) {
         function initCategoryMap() {
             if (localStorage.getItem('ok_category_map')) {
                 categoryMap = JSON.parse(localStorage.getItem('ok_category_map'));
+                // 強制升級檢查：如果本機快取仍包含舊版的 "餐飲飲食"，則自動覆蓋升級為新版分類
+                if (categoryMap.expense && categoryMap.expense["餐飲飲食"]) {
+                    categoryMap = JSON.parse(JSON.stringify(CATEGORY_MAP));
+                    localStorage.setItem('ok_category_map', JSON.stringify(categoryMap));
+                }
             } else {
                 categoryMap = JSON.parse(JSON.stringify(CATEGORY_MAP));
                 localStorage.setItem('ok_category_map', JSON.stringify(categoryMap));
@@ -2661,16 +2680,20 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             document.getElementById('budget-year-select').value = curY;
             document.getElementById('budget-month-select').value = curM;
             
+            // 更新醒目顯示月份
+            document.getElementById('budget-current-month-display').innerText = `目前編列月份：${curY} 年 ${curM} 月`;
+            
             const expContainer = document.getElementById('budget-section-expense');
             const incContainer = document.getElementById('budget-section-income');
 
             expContainer.innerHTML = '';
             incContainer.innerHTML = '';
 
-            let dObj = new Date(parseInt(curY, 10), parseInt(curM, 10) - 2, 1);
-            let prevYM = `${dObj.getFullYear()}-${(dObj.getMonth() + 1).toString().padStart(2, '0')}`;
+            // 修改為抓取去年同期的資料
+            let prevYear = parseInt(curY, 10) - 1;
+            let prevYM = `${prevYear}-${curM}`;
 
-            const prevMonthBudgets = budgets[prevYM] || {};
+            const prevYearBudgets = budgets[prevYM] || {};
             const targetMonthBudgets = budgets[currentBudgetPeriod] || {};
 
             Object.keys(categoryMap.expense).forEach(parentCat => {
@@ -2685,7 +2708,7 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                 let parentCurrSum = 0;
                 
                 subs.forEach(sub => {
-                    parentPrevSum += parseFloat(prevMonthBudgets[`${parentCat} > ${sub}`]?.amount) || 0;
+                    parentPrevSum += parseFloat(prevYearBudgets[`${parentCat} > ${sub}`]?.amount) || 0;
                     parentCurrSum += parseFloat(targetMonthBudgets[`${parentCat} > ${sub}`]?.amount) || 0;
                 });
 
@@ -2699,8 +2722,8 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                         <span class="font-extrabold text-slate-800 text-sm md:text-base whitespace-normal break-words leading-tight">${parentCat}</span>
                     </div>
                     <div class="flex items-center space-x-2 md:space-x-3 shrink-0 min-w-0">
-                        <div class="text-[11px] md:text-xs text-slate-700 bg-slate-200/80 px-2 py-1 rounded-md font-bold shrink-0 text-right" title="上月累計預算: $${parentPrevSum.toLocaleString()}">
-                            <span class="hidden md:inline">上月: </span>$${parentPrevSum.toLocaleString()}
+                        <div class="text-[11px] md:text-xs text-slate-700 bg-slate-200/80 px-2 py-1 rounded-md font-bold shrink-0 text-right" title="去年同期預算: $${parentPrevSum.toLocaleString()}">
+                            <span class="hidden md:inline">去年: </span>$${parentPrevSum.toLocaleString()}
                         </div>
                         <div class="flex items-center space-x-1 bg-slate-200/50 border border-slate-300 rounded-lg px-2 py-1 w-24 sm:w-28 shrink-0 select-none">
                             <span class="text-slate-600 text-[10px] md:text-xs shrink-0 font-bold select-none">🔒 $</span>
@@ -2716,7 +2739,7 @@ function handleBiDirectionalSync(spreadsheet, localData) {
 
                 subs.forEach(subCat => {
                     const subKey = `${parentCat} > ${subCat}`;
-                    const subPrev = prevMonthBudgets[subKey]?.amount || 0;
+                    const subPrev = prevYearBudgets[subKey]?.amount || 0;
                     const subCurr = targetMonthBudgets[subKey]?.amount || '';
 
                     const subRow = document.createElement('div');
@@ -2726,8 +2749,8 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                             <p class="text-slate-800 font-bold text-xs md:text-sm whitespace-normal break-words leading-tight text-slate-600">👉 ${subCat}</p>
                         </div>
                         <div class="flex items-center space-x-2 md:space-x-3 shrink-0 min-w-0">
-                            <div class="text-[11px] md:text-xs text-slate-500 bg-slate-50 px-2 py-1 rounded-md font-bold shrink-0 text-right" title="上月: $${subPrev.toLocaleString()}">
-                                <span class="hidden md:inline">上月: </span>$${subPrev.toLocaleString()}
+                            <div class="text-[11px] md:text-xs text-slate-500 bg-slate-50 px-2 py-1 rounded-md font-bold shrink-0 text-right" title="去年: $${subPrev.toLocaleString()}">
+                                <span class="hidden md:inline">去年: </span>$${subPrev.toLocaleString()}
                             </div>
                             <div class="flex items-center space-x-1 bg-white border border-slate-300 rounded-lg px-2 py-1 w-24 sm:w-28 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 shrink-0 shadow-sm">
                                 <span class="text-slate-400 text-[10px] md:text-xs font-bold select-none">$</span>
@@ -2754,7 +2777,7 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                 let parentCurrSum = 0;
                 
                 subs.forEach(sub => {
-                    parentPrevSum += parseFloat(prevMonthBudgets[`${parentCat} > ${sub}`]?.amount) || 0;
+                    parentPrevSum += parseFloat(prevYearBudgets[`${parentCat} > ${sub}`]?.amount) || 0;
                     parentCurrSum += parseFloat(targetMonthBudgets[`${parentCat} > ${sub}`]?.amount) || 0;
                 });
 
@@ -2768,8 +2791,8 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                         <span class="font-extrabold text-slate-800 text-sm md:text-base whitespace-normal break-words leading-tight">${parentCat}</span>
                     </div>
                     <div class="flex items-center space-x-2 md:space-x-3 shrink-0 min-w-0">
-                        <div class="text-[11px] md:text-xs text-slate-700 bg-slate-200/80 px-2 py-1 rounded-md font-bold shrink-0 text-right" title="上月目標: $${parentPrevSum.toLocaleString()}">
-                            <span class="hidden md:inline">上月: </span>$${parentPrevSum.toLocaleString()}
+                        <div class="text-[11px] md:text-xs text-slate-700 bg-slate-200/80 px-2 py-1 rounded-md font-bold shrink-0 text-right" title="去年同期目標: $${parentPrevSum.toLocaleString()}">
+                            <span class="hidden md:inline">去年: </span>$${parentPrevSum.toLocaleString()}
                         </div>
                         <div class="flex items-center space-x-1 bg-slate-200/50 border border-slate-300 rounded-lg px-2 py-1 w-24 sm:w-28 shrink-0 select-none">
                             <span class="text-slate-600 text-[10px] md:text-xs shrink-0 font-bold select-none">🔒 $</span>
@@ -2785,7 +2808,7 @@ function handleBiDirectionalSync(spreadsheet, localData) {
 
                 subs.forEach(subCat => {
                     const subKey = `${parentCat} > ${subCat}`;
-                    const subPrev = prevMonthBudgets[subKey]?.amount || 0;
+                    const subPrev = prevYearBudgets[subKey]?.amount || 0;
                     const subCurr = targetMonthBudgets[subKey]?.amount || '';
 
                     const subRow = document.createElement('div');
@@ -2795,8 +2818,8 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                             <p class="text-slate-800 font-bold text-xs md:text-sm whitespace-normal break-words leading-tight text-slate-600">👉 ${subCat}</p>
                         </div>
                         <div class="flex items-center space-x-2 md:space-x-3 shrink-0 min-w-0">
-                            <div class="text-[11px] md:text-xs text-slate-500 bg-slate-50 px-2 py-1 rounded-md font-bold shrink-0 text-right" title="上月: $${subPrev.toLocaleString()}">
-                                <span class="hidden md:inline">上月: </span>$${subPrev.toLocaleString()}
+                            <div class="text-[11px] md:text-xs text-slate-500 bg-slate-50 px-2 py-1 rounded-md font-bold shrink-0 text-right" title="去年: $${subPrev.toLocaleString()}">
+                                <span class="hidden md:inline">去年: </span>$${subPrev.toLocaleString()}
                             </div>
                             <div class="flex items-center space-x-1 bg-white border border-slate-300 rounded-lg px-2 py-1 w-24 sm:w-28 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 shrink-0 shadow-sm">
                                 <span class="text-slate-400 text-[10px] md:text-xs font-bold select-none">$</span>
