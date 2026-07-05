@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-    <title>御守金 - 階層式家庭記帳、月度預算與雲端雙向同步系統</title>
+    <title>御守金 - 家庭收支紀錄 — 掌握你的現金流</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chart.js -->
@@ -66,7 +66,7 @@
                 </div>
                 <div>
                     <h1 class="font-bold text-lg md:text-xl tracking-wider">御守金</h1>
-                    <p class="text-xs text-emerald-100 hidden md:block">階層式家庭記帳、月度預算與雲端備份系統</p>
+                    <p class="text-xs text-emerald-100 hidden md:block">家庭收支紀錄 — 掌握你的現金流</p>
                 </div>
             </div>
             <div class="flex items-center justify-center text-sm">
@@ -441,7 +441,7 @@
                             <h3 class="font-bold text-slate-800 text-base flex items-center space-x-2">
                                 <span>🤖 AI 語意記帳</span>
                             </h3>
-                            <p class="text-xs text-slate-400 leading-relaxed">可以直接輸入日常口語對話、點擊麥克風語音輸入，或是上傳發票/收據照片，AI 會自動為您多重歸類並條列明細！</p>
+                            <p class="text-xs text-slate-400 leading-relaxed">可以直接輸入日常口語對話，或是上傳發票/收據照片，AI 會自動為您多重歸類，並可於匯入前進行編輯修改！</p>
                             
                             <div class="space-y-3">
                                 <div class="relative">
@@ -449,14 +449,12 @@
 7/2 中午跟同事去吃外食聚餐，我付了現金$450元。
 下午去全聯刷卡幫寶寶買了日用品花1200元..." class="w-full bg-slate-50 border border-slate-200 text-xs rounded-xl p-3 pb-12 focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-slate-300 leading-relaxed"></textarea>
                                     
-                                    <!-- 語音與相機工具列 -->
+                                    <!-- 相機/檔案上傳工具列 -->
                                     <div class="absolute bottom-2 right-2 flex space-x-2">
-                                        <button type="button" onclick="startVoiceRecognition()" class="p-2 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 rounded-lg shadow-sm transition active:scale-95" title="語音輸入 (需瀏覽器支援)">
-                                            🎤
-                                        </button>
-                                        <label class="cursor-pointer p-2 bg-indigo-100 text-indigo-700 hover:bg-indigo-200 rounded-lg shadow-sm transition active:scale-95" title="拍照或上傳收據照片">
-                                            📸
-                                            <input type="file" id="ai-image-upload" accept="image/*" capture="environment" class="hidden" onchange="handleAIImageUpload(event)">
+                                        <label class="cursor-pointer px-3 py-1.5 bg-indigo-100 text-indigo-700 hover:bg-indigo-200 rounded-lg shadow-sm transition active:scale-95 flex items-center space-x-1" title="上傳檔案或收據照片">
+                                            <span>📸</span>
+                                            <span class="text-[10px] font-bold">照片/截圖</span>
+                                            <input type="file" id="ai-image-upload" accept="image/*" class="hidden" onchange="handleAIImageUpload(event)">
                                         </label>
                                     </div>
                                 </div>
@@ -470,15 +468,21 @@
                                 <button onclick="processAITextInput()" id="btn-ai-analyze" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-xl text-xs font-bold transition shadow flex items-center justify-center space-x-1.5">
                                     <span>✨ 語意 / 影像綜合分析</span>
                                 </button>
+                                <div id="ai-model-status" class="text-[10px] text-slate-400 text-right mt-1 font-medium">
+                                    連線狀態：就緒 (將自動選擇最佳模型)
+                                </div>
                             </div>
 
                             <!-- AI 預覽與匯入控制區 -->
                             <div id="ai-preview-section" class="hidden pt-3 border-t border-slate-100 space-y-3">
                                 <h4 class="text-xs font-bold text-indigo-800 flex items-center justify-between">
-                                    <span>🔍 解析預覽列表 (勾選欲匯入項目):</span>
+                                    <div class="flex items-center space-x-2">
+                                        <input type="checkbox" id="ai-import-all" checked onchange="toggleAllAIImport(this.checked)" class="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer">
+                                        <label for="ai-import-all" class="cursor-pointer">全選預覽列表 (可直接修改下方內容)</label>
+                                    </div>
                                     <span id="ai-parsed-count" class="text-[10px] bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-full">0 筆</span>
                                 </h4>
-                                <div id="ai-parsed-items" class="max-h-56 overflow-y-auto space-y-2 no-scrollbar border border-slate-100 rounded-xl p-2 bg-slate-50/50">
+                                <div id="ai-parsed-items" class="max-h-[380px] overflow-y-auto space-y-3 no-scrollbar border border-slate-100 rounded-xl p-2 bg-slate-50/50">
                                 </div>
                                 <button onclick="importAIParsedTransactions()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-xs font-bold transition shadow-md flex items-center justify-center space-x-1.5">
                                     <span>✨ 確認批次匯入選取帳目</span>
@@ -554,14 +558,27 @@
                         
                         <!-- 預算設定控制區 -->
                         <div class="flex flex-wrap items-center gap-2 self-start md:self-auto">
-                            <!-- 分層年月選擇器 -->
-                            <div class="flex items-center space-x-2 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
-                                <button onclick="navigateBudgetMonth(-1)" class="w-6 h-6 flex items-center justify-center bg-white hover:bg-slate-50 border border-slate-200 text-[10px] font-bold rounded shadow-sm transition active:scale-95" title="上個月">◀</button>
-                                <select id="budget-year-select" onchange="handleBudgetPeriodChange()" class="bg-transparent text-sm font-black text-slate-700 focus:outline-none cursor-pointer text-center"></select>
-                                <span class="text-slate-400 font-bold text-xs">年</span>
-                                <select id="budget-month-select" onchange="handleBudgetPeriodChange()" class="bg-transparent text-sm font-black text-slate-700 focus:outline-none cursor-pointer text-center"></select>
-                                <span class="text-slate-400 font-bold text-xs">月</span>
-                                <button onclick="navigateBudgetMonth(1)" class="w-6 h-6 flex items-center justify-center bg-white hover:bg-slate-50 border border-slate-200 text-[10px] font-bold rounded shadow-sm transition active:scale-95" title="下個月">▶</button>
+                            <!-- 分層年月選擇器 (拆分年/月並支援左右切換) -->
+                            <div class="flex items-center gap-2">
+                                <!-- 年份選擇器 -->
+                                <div class="flex items-center bg-slate-100 rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                                    <button onclick="navigateBudgetYear(-1)" class="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-400 hover:text-slate-600 transition active:scale-95 text-[10px] font-bold border-r border-slate-200" title="上一年">◀</button>
+                                    <div class="flex items-center px-1">
+                                        <select id="budget-year-select" onchange="handleBudgetPeriodChange()" class="bg-transparent text-sm font-black text-slate-700 focus:outline-none cursor-pointer text-center appearance-none pl-2"></select>
+                                        <span class="text-slate-500 font-bold text-xs pointer-events-none pr-2">年</span>
+                                    </div>
+                                    <button onclick="navigateBudgetYear(1)" class="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-400 hover:text-slate-600 transition active:scale-95 text-[10px] font-bold border-l border-slate-200" title="下一年">▶</button>
+                                </div>
+                                
+                                <!-- 月份選擇器 -->
+                                <div class="flex items-center bg-slate-100 rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                                    <button onclick="navigateBudgetMonth(-1)" class="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-400 hover:text-slate-600 transition active:scale-95 text-[10px] font-bold border-r border-slate-200" title="上個月">◀</button>
+                                    <div class="flex items-center px-1">
+                                        <select id="budget-month-select" onchange="handleBudgetPeriodChange()" class="bg-transparent text-sm font-black text-slate-700 focus:outline-none cursor-pointer text-center appearance-none pl-2"></select>
+                                        <span class="text-slate-500 font-bold text-xs pointer-events-none pr-2">月</span>
+                                    </div>
+                                    <button onclick="navigateBudgetMonth(1)" class="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-400 hover:text-slate-600 transition active:scale-95 text-[10px] font-bold border-l border-slate-200" title="下個月">▶</button>
+                                </div>
                             </div>
                             <!-- 進階複製預算按鈕 -->
                             <button type="button" onclick="openAdvBudgetCopyModal()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold px-3 py-1.5 rounded-xl transition flex items-center space-x-1 shadow-sm whitespace-nowrap">
@@ -860,7 +877,12 @@
                         <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
                             <div>
                                 <label class="block text-xs font-bold text-slate-600 mb-1">Gemini API 金鑰：</label>
-                                <input type="password" id="cfg-gemini-key" placeholder="貼上您的 Gemini API Key" class="w-full bg-white border border-slate-200 text-xs rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono">
+                                <div class="relative">
+                                    <input type="password" id="cfg-gemini-key" placeholder="貼上您的 Gemini API Key" class="w-full bg-white border border-slate-200 text-xs rounded-lg pl-3 pr-10 py-2 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono">
+                                    <button type="button" onclick="togglePasswordVisibility('cfg-gemini-key', 'eye-gemini')" class="absolute right-2.5 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none text-sm select-none">
+                                        <span id="eye-gemini">👁️</span>
+                                    </button>
+                                </div>
                                 <span class="text-[10px] text-slate-400 mt-1 block">留空則不啟用，若填入將在部署時安全地供您個人網頁調用。</span>
                             </div>
                             
@@ -886,7 +908,12 @@
 
                             <div>
                                 <label class="block text-xs font-bold text-slate-600 mb-1">Google Apps Script Web App 網址：</label>
-                                <input type="text" id="cfg-gas-url" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-white border border-slate-200 text-xs rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono">
+                                <div class="relative">
+                                    <input type="password" id="cfg-gas-url" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-white border border-slate-200 text-xs rounded-lg pl-3 pr-10 py-2 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono">
+                                    <button type="button" onclick="togglePasswordVisibility('cfg-gas-url', 'eye-url')" class="absolute right-2.5 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none text-sm select-none">
+                                        <span id="eye-url">👁️</span>
+                                    </button>
+                                </div>
                             </div>
 
                             <!-- 取得 Google Apps Script Web App 網址指南 -->
@@ -1157,8 +1184,8 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                                 <label class="block text-xs font-bold text-slate-600 mb-1">Google Apps Script 存取密碼：</label>
                                 <div class="relative">
                                     <input type="password" id="cfg-gas-password" placeholder="請輸入在 GAS 中設定的密碼" class="w-full bg-white border border-slate-200 text-xs rounded-lg pl-3 pr-10 py-2 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono">
-                                    <button type="button" onclick="togglePasswordVisibility('cfg-gas-password', 'eye-icon')" class="absolute right-2.5 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none text-sm select-none">
-                                        <span id="eye-icon">👁️</span>
+                                    <button type="button" onclick="togglePasswordVisibility('cfg-gas-password', 'eye-pwd')" class="absolute right-2.5 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none text-sm select-none">
+                                        <span id="eye-pwd">👁️</span>
                                     </button>
                                 </div>
                             </div>
@@ -1193,7 +1220,7 @@ function handleBiDirectionalSync(spreadsheet, localData) {
 
     <!-- 頁尾 -->
     <footer class="bg-slate-800 text-slate-400 py-6 border-t border-slate-700 mt-auto text-xs text-center">
-        <p>© 2026 御守金 - 階層式家庭記帳與預算控制工具 · 專為聰明理財家庭設計</p>
+        <p>© 2026 御守金 - 家庭收支紀錄 — 掌握你的現金流</p>
         <p class="mt-1 text-slate-500">使用 HTML5 / Tailwind CSS / Chart.js / html2pdf.js 與 Gemini AI 核心技術構建</p>
     </footer>
 
@@ -1286,7 +1313,6 @@ function handleBiDirectionalSync(spreadsheet, localData) {
 
             initCategoryMap();
 
-            // 確保全新初始是空的 (移除所有硬編碼 mock 資料)
             if (localStorage.getItem('ok_transactions')) {
                 transactions = JSON.parse(localStorage.getItem('ok_transactions'));
                 transactions.forEach(t => { 
@@ -1354,6 +1380,32 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             filterYear.value = currentYearNum.toString();
         }
 
+        function ensureYearOptionExists(y) {
+            const yearSel = document.getElementById('budget-year-select');
+            if(!Array.from(yearSel.options).some(opt => opt.value == y)) {
+                 const opt = document.createElement('option');
+                 opt.value = y;
+                 opt.text = y;
+                 yearSel.appendChild(opt);
+                 
+                 const options = Array.from(yearSel.options);
+                 options.sort((a, b) => parseInt(a.value) - parseInt(b.value));
+                 yearSel.innerHTML = '';
+                 options.forEach(o => yearSel.appendChild(o));
+            }
+        }
+
+        function navigateBudgetYear(direction) {
+            const yearSel = document.getElementById('budget-year-select');
+            if (!yearSel) return;
+            
+            let y = parseInt(yearSel.value, 10) + direction;
+            ensureYearOptionExists(y);
+            
+            yearSel.value = y;
+            handleBudgetPeriodChange();
+        }
+
         function navigateBudgetMonth(direction) {
             const yearSel = document.getElementById('budget-year-select');
             const monthSel = document.getElementById('budget-month-select');
@@ -1366,9 +1418,7 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             let ny = dateObj.getFullYear();
             let nm = (dateObj.getMonth() + 1).toString().padStart(2, '0');
             
-            if(!Array.from(yearSel.options).some(opt => opt.value == ny)) {
-                 yearSel.innerHTML += `<option value="${ny}">${ny}</option>`;
-            }
+            ensureYearOptionExists(ny);
             
             yearSel.value = ny;
             monthSel.value = nm;
@@ -1728,11 +1778,10 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                 throw new Error("請先至設定頁面填入 Gemini API 金鑰！");
             }
 
-            // 🌟 核心設計：多模型自動降級 (Fallback Sequence)
             const modelsToTry = [
-                'gemini-2.5-flash-lite', // 優先輕量
-                'gemma-4-31b-it',        // 次優
-                'gemini-2.5-flash'       // 保底
+                'gemini-2.5-flash-lite', 
+                'gemma-4-31b-it',        
+                'gemini-2.5-flash'       
             ];
 
             const parts = [];
@@ -1767,11 +1816,11 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             };
 
             let lastError = null;
+            const statusEl = document.getElementById('ai-model-status');
 
             for (const modelName of modelsToTry) {
-                // 如果是圖片模式，自動跳過不支援多模態的文字專屬模型
                 if (base64Image && modelName === 'gemma-4-31b-it') {
-                    console.log(`⏩ 圖片模式跳過純文字模型: ${modelName}`);
+                    console.log(`⏩ 圖片模式自動跳過純文字模型: ${modelName}`);
                     continue;
                 }
 
@@ -1779,11 +1828,15 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                 
                 try {
                     console.log(`🔄 正在嘗試使用 AI 模型: ${modelName} ...`);
+                    if (statusEl && statusEl.innerText.includes('連線')) {
+                        statusEl.innerHTML = `<span class="text-indigo-500 animate-pulse">🔄 連線中 (嘗試模型: ${modelName})...</span>`;
+                    }
+                    
                     const response = await fetch(url, options);
                     
                     if (response.ok) {
                         console.log(`✅ 成功使用模型: ${modelName} 完成解析！`);
-                        return await response.json();
+                        return { data: await response.json(), model: modelName };
                     } else {
                         const errData = await response.json();
                         console.warn(`⚠️ 模型 ${modelName} 呼叫失敗，準備切換下一個...`, errData);
@@ -1797,7 +1850,7 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                 }
             }
 
-            throw new Error(`所有 AI 模型皆嘗試失敗 (可能是額度皆已耗盡或網路異常)。\n最後錯誤: ${lastError.message}`);
+            throw new Error(`所有 AI 模型皆嘗試失敗。\n最後錯誤: ${lastError.message}`);
         }
 
         async function sendToGoogleSheet(action, payloadData) {
@@ -2015,6 +2068,7 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                 aiImageMimeType = file.type;
                 document.getElementById('ai-image-preview').src = e.target.result;
                 document.getElementById('ai-image-preview-container').classList.remove('hidden');
+                document.getElementById('ai-model-status').innerHTML = "影像已準備，將自動選用支援視覺之模型。";
             };
             reader.readAsDataURL(file);
         }
@@ -2024,45 +2078,22 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             aiImageMimeType = null;
             document.getElementById('ai-image-upload').value = '';
             document.getElementById('ai-image-preview-container').classList.add('hidden');
-        }
-
-        function startVoiceRecognition() {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) {
-                showToast("❌ 您的瀏覽器不支援 Web Speech API 語音辨識功能！建議使用 Chrome", "error");
-                return;
-            }
-            const recognition = new SpeechRecognition();
-            recognition.lang = 'zh-TW';
-            recognition.interimResults = false;
-            recognition.maxAlternatives = 1;
-
-            showToast("🎤 麥克風已啟動，請開始說出消費內容...", "info");
-            
-            recognition.onresult = (event) => {
-                const transcript = event.results[0][0].transcript;
-                const textarea = document.getElementById('ai-raw-text');
-                textarea.value += (textarea.value ? '\n' : '') + transcript;
-                showToast("✅ 語音辨識成功填入！", "success");
-            };
-
-            recognition.onerror = (event) => {
-                showToast(`❌ 語音辨識發生錯誤: ${event.error}`, "error");
-            };
-
-            recognition.start();
+            document.getElementById('ai-model-status').innerHTML = "連線狀態：就緒 (將自動選擇最佳模型)";
         }
 
         async function processAITextInput() {
             const text = document.getElementById('ai-raw-text').value.trim();
             if (!text && !aiImageBase64) {
-                showToast("❌ 請輸入描述、語音或上傳照片收據！", "error");
+                showToast("❌ 請輸入描述或上傳照片收據！", "error");
                 return;
             }
 
             const btn = document.getElementById('btn-ai-analyze');
+            const statusEl = document.getElementById('ai-model-status');
+            
             btn.disabled = true;
             btn.innerHTML = `<span>⏳ AI 正在視覺與語意綜合分析中...</span>`;
+            statusEl.innerHTML = `<span class="text-indigo-500 animate-pulse">🔄 正在連線與解析中...</span>`;
 
             const categoryMetaStr = JSON.stringify(categoryMap);
             const today = new Date();
@@ -2097,22 +2128,57 @@ function handleBiDirectionalSync(spreadsheet, localData) {
 
             try {
                 const result = await callGemini(systemPrompt, text, jsonSchema, aiImageBase64, aiImageMimeType);
-                const rawJson = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                const rawJson = result.data.candidates?.[0]?.content?.parts?.[0]?.text;
                 parsedAITransactions = JSON.parse(rawJson).transactions || [];
 
                 if (parsedAITransactions.length === 0) {
                     showToast("🔍 AI 無法識別出記帳項目，請補充內容後重試", "info");
                     document.getElementById('ai-preview-section').classList.add('hidden');
+                    statusEl.innerHTML = `<span class="text-amber-500 font-bold">⚠️ 無法解析有效項目 (調用模型: ${result.model})</span>`;
                 } else {
+                    document.getElementById('ai-import-all').checked = true;
                     renderAIPreviewList();
                     showToast(`✨ 成功解析出 ${parsedAITransactions.length} 筆項目！`, "success");
+                    statusEl.innerHTML = `<span class="text-emerald-600 font-bold">✅ 解析成功！(調用模型: ${result.model})</span>`;
                 }
             } catch (err) {
                 showToast(`❌ 分析失敗: ${err.message}`, "error");
+                statusEl.innerHTML = `<span class="text-rose-500 font-bold">❌ 連線異常: ${err.message}</span>`;
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = `<span>✨ 語意 / 影像綜合分析</span>`;
             }
+        }
+
+        function getAICategoryOptionsHTML(type, selectedVal) {
+            if (!categoryMap[type]) return '';
+            const parents = Object.keys(categoryMap[type]);
+            return parents.map(p => `<option value="${p}" ${p === selectedVal ? 'selected' : ''}>${p}</option>`).join('');
+        }
+
+        function getAISubCategoryOptionsHTML(type, parent, selectedVal) {
+            if (!categoryMap[type] || !categoryMap[type][parent]) return '';
+            const subs = categoryMap[type][parent];
+            return subs.map(s => `<option value="${s}" ${s === selectedVal ? 'selected' : ''}>${s}</option>`).join('');
+        }
+
+        function updateAIParentCat(idx) {
+            const typeVal = document.getElementById(`ai-type-${idx}`).value;
+            const parentSelect = document.getElementById(`ai-parent-${idx}`);
+            parentSelect.innerHTML = getAICategoryOptionsHTML(typeVal, '');
+            updateAISubCat(idx);
+        }
+
+        function updateAISubCat(idx) {
+            const typeVal = document.getElementById(`ai-type-${idx}`).value;
+            const parentVal = document.getElementById(`ai-parent-${idx}`).value;
+            const subSelect = document.getElementById(`ai-sub-${idx}`);
+            subSelect.innerHTML = getAISubCategoryOptionsHTML(typeVal, parentVal, '');
+        }
+        
+        function toggleAllAIImport(checked) {
+            const checkboxes = document.querySelectorAll('.ai-import-chk');
+            checkboxes.forEach(chk => chk.checked = checked);
         }
 
         function renderAIPreviewList() {
@@ -2125,28 +2191,55 @@ function handleBiDirectionalSync(spreadsheet, localData) {
 
             parsedAITransactions.forEach((tx, idx) => {
                 const card = document.createElement('div');
-                const isInc = tx.type === 'income';
-                const absAmount = Math.abs(tx.amount);
-                const displaySymbol = isInc ? (tx.amount >= 0 ? '+' : '-') : (tx.amount >= 0 ? '-' : '+');
-                const amtColor = isInc ? (tx.amount >= 0 ? 'text-emerald-600' : 'text-rose-600') : (tx.amount >= 0 ? 'text-rose-600' : 'text-emerald-600');
-                const methodBadge = tx.payMethod === '信用卡' ? `<span class="px-1 py-0.2 bg-blue-50 text-blue-700 rounded text-[10px]">💳 ${tx.payMethod}</span>` : `<span class="px-1 py-0.2 bg-amber-50 text-amber-700 rounded text-[10px]">💵 ${tx.payMethod}</span>`;
+                const absAmount = Math.abs(tx.amount || 0);
 
-                card.className = "p-3 bg-white rounded-lg border border-slate-200 flex items-center justify-between text-xs shadow-sm hover:shadow transition";
+                card.className = "p-3 bg-white rounded-xl border border-slate-200 text-xs shadow-sm space-y-2 transition relative hover:border-indigo-300";
                 card.innerHTML = `
-                    <div class="flex items-start gap-3 w-full">
-                        <input type="checkbox" class="ai-import-chk mt-1 w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer" data-idx="${idx}" checked>
-                        <div class="flex-1 min-w-0 space-y-1">
-                            <div class="flex items-center space-x-1.5 flex-wrap gap-y-1">
-                                <span class="text-[10px] text-slate-400 font-bold">${tx.date}</span>
-                                <span class="px-1 py-0.2 rounded font-bold ${isInc ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}">${isInc ? '收入' : '支出'}</span>
-                                ${methodBadge}
-                            </div>
-                            <div class="font-extrabold text-slate-700">${tx.parentCat} &gt; ${tx.subCat}</div>
-                            <div class="text-[10px] text-slate-500 line-clamp-2" title="${tx.note}">${tx.note}</div>
+                    <div class="flex items-center gap-2 mb-1 border-b border-slate-100 pb-2">
+                        <input type="checkbox" class="ai-import-chk w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer" data-idx="${idx}" checked>
+                        <span class="font-bold text-indigo-700">選擇匯入此筆</span>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        <div>
+                            <label class="text-[10px] text-slate-500 font-bold block mb-0.5">日期</label>
+                            <input type="date" id="ai-date-${idx}" value="${cleanDateToYMD(tx.date)}" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 font-medium">
                         </div>
-                        <div class="flex flex-col items-end justify-center shrink-0">
-                            <span class="font-black text-sm md:text-base ${amtColor}">${displaySymbol}$${absAmount.toLocaleString()}</span>
+                        <div>
+                            <label class="text-[10px] text-slate-500 font-bold block mb-0.5">收支類型</label>
+                            <select id="ai-type-${idx}" onchange="updateAIParentCat(${idx})" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 font-bold">
+                                <option value="expense" ${tx.type === 'expense' ? 'selected' : ''}>💸 支出</option>
+                                <option value="income" ${tx.type === 'income' ? 'selected' : ''}>💵 收入</option>
+                            </select>
                         </div>
+                        <div>
+                            <label class="text-[10px] text-slate-500 font-bold block mb-0.5">支付方式</label>
+                            <select id="ai-pay-${idx}" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 font-medium">
+                                <option value="現金" ${tx.payMethod === '現金' ? 'selected' : ''}>現金支付</option>
+                                <option value="信用卡" ${tx.payMethod === '信用卡' ? 'selected' : ''}>信用卡</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-500 font-bold block mb-0.5">金額 (NTD)</label>
+                            <input type="number" id="ai-amount-${idx}" value="${absAmount}" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1.5 text-xs font-black text-slate-700 focus:outline-none focus:ring-1 focus:ring-emerald-500" inputmode="decimal">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 mt-2">
+                        <div>
+                            <label class="text-[10px] text-slate-500 font-bold block mb-0.5">大類</label>
+                            <select id="ai-parent-${idx}" onchange="updateAISubCat(${idx})" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 font-medium">
+                                ${getAICategoryOptionsHTML(tx.type, tx.parentCat)}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-500 font-bold block mb-0.5">細項</label>
+                            <select id="ai-sub-${idx}" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 font-medium">
+                                ${getAISubCategoryOptionsHTML(tx.type, tx.parentCat, tx.subCat)}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <label class="text-[10px] text-slate-500 font-bold block mb-0.5">備註說明</label>
+                        <input type="text" id="ai-note-${idx}" value="${tx.note || ''}" placeholder="無備註" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 font-medium">
                     </div>
                 `;
                 container.appendChild(card);
@@ -2155,8 +2248,6 @@ function handleBiDirectionalSync(spreadsheet, localData) {
         }
 
         async function importAIParsedTransactions() {
-            if (parsedAITransactions.length === 0) return;
-
             const checkboxes = document.querySelectorAll('.ai-import-chk:checked');
             if (checkboxes.length === 0) {
                 showToast("⚠️ 請至少勾選一筆欲匯入的帳目", "info");
@@ -2167,16 +2258,23 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             const selectedIndices = Array.from(checkboxes).map(c => parseInt(c.dataset.idx));
             
             selectedIndices.sort((a,b) => b - a).forEach(idx => {
-                const tx = parsedAITransactions[idx];
+                const dateVal = document.getElementById(`ai-date-${idx}`).value;
+                const typeVal = document.getElementById(`ai-type-${idx}`).value;
+                const parentVal = document.getElementById(`ai-parent-${idx}`).value;
+                const subVal = document.getElementById(`ai-sub-${idx}`).value;
+                const payVal = document.getElementById(`ai-pay-${idx}`).value;
+                const amountVal = parseInt(document.getElementById(`ai-amount-${idx}`).value, 10) || 0;
+                const noteVal = document.getElementById(`ai-note-${idx}`).value.trim();
+
                 transactions.unshift({
                     id: 'tx-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
-                    date: cleanDateToYMD(tx.date),
-                    type: tx.type,
-                    parentCat: tx.parentCat,
-                    subCat: tx.subCat,
-                    payMethod: tx.payMethod || '現金',
-                    amount: tx.amount,
-                    note: tx.note,
+                    date: cleanDateToYMD(dateVal),
+                    type: typeVal,
+                    parentCat: parentVal,
+                    subCat: subVal,
+                    payMethod: payVal || '現金',
+                    amount: amountVal,
+                    note: noteVal,
                     updatedAt: Date.now()
                 });
                 importCount++;
@@ -2193,6 +2291,7 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             removeAIImage();
             document.getElementById('ai-preview-section').classList.add('hidden');
             parsedAITransactions = [];
+            document.getElementById('ai-model-status').innerHTML = "連線狀態：就緒 (將自動選擇最佳模型)";
 
             populateDynamicYearDropdowns();
             initFilterOptions();
@@ -2389,7 +2488,7 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             
             let subs = [];
             if (parentVal === 'all') {
-                // 空
+                
             } else {
                 if (typeVal === 'all') {
                     subs = [...(categoryMap.expense[parentVal] || []), ...(categoryMap.income[parentVal] || [])];
@@ -3693,11 +3792,11 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             【預算與實際對比】
             ${budgetVsActualSummary}`;
 
-            const systemPrompt = "你是一位親切且具備 CFP 認證的理財顧問，請針對上述收支數據，給予家庭理財優化方案。";
+            const systemPrompt = "你是一位親切且具備 CFP 認證的理財顧問，請針對上述收支數據，給予家庭理財優化方案。請務必使用「繁體中文 (Traditional Chinese)」進行分析與說明。";
 
             try {
                 const result = await callGemini(systemPrompt, userPrompt);
-                const advice = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                const advice = result.data.candidates?.[0]?.content?.parts?.[0]?.text;
                 advisorOutput.innerHTML = `<div class="prose prose-sm text-slate-700 max-w-none text-xs leading-relaxed space-y-3">${advice.replace(/\n/g, '<br>')}</div>`;
                 showToast("✨ AI 理財顧問評估完成！", "success");
             } catch (err) {
