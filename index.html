@@ -128,6 +128,46 @@
                 </div>
             </div>
 
+            <!-- 進階預算複製彈窗 Modal -->
+            <div id="adv-budget-copy-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+                <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-100 transform transition-all scale-95 duration-200" id="adv-budget-copy-box">
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-bold text-slate-800 flex items-center space-x-2"><span>📋 進階複製預算</span></h3>
+                        
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-1">選擇資料來源 (從哪裡複製)</label>
+                            <div class="flex space-x-2">
+                                <select id="adv-copy-src-year" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3 py-2 focus:outline-none"></select>
+                                <select id="adv-copy-src-month" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3 py-2 focus:outline-none">
+                                    <option value="all">全年 (1~12月)</option>
+                                    <option value="01">1月</option>
+                                    <option value="02">2月</option>
+                                    <option value="03">3月</option>
+                                    <option value="04">4月</option>
+                                    <option value="05">5月</option>
+                                    <option value="06">6月</option>
+                                    <option value="07">7月</option>
+                                    <option value="08">8月</option>
+                                    <option value="09">9月</option>
+                                    <option value="10">10月</option>
+                                    <option value="11">11月</option>
+                                    <option value="12">12月</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-100">
+                            <p class="text-xs font-bold text-emerald-800 mb-1">覆蓋目標說明：</p>
+                            <p id="adv-copy-target-desc" class="text-xs text-emerald-600 leading-relaxed">將覆蓋目前選擇的預算資料...</p>
+                        </div>
+                    </div>
+                    <div class="flex space-x-3 mt-6">
+                        <button onclick="closeAdvBudgetCopyModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 rounded-xl text-xs font-bold transition">取消</button>
+                        <button onclick="executeAdvBudgetCopy()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-xs font-bold transition shadow-md">確認複製</button>
+                    </div>
+                </div>
+            </div>
+
             <!-- 首次同步選擇策略彈窗 First-Sync Choice Modal -->
             <div id="first-sync-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
                 <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 transform transition-all scale-95 duration-200">
@@ -403,28 +443,47 @@
                             <h3 class="font-bold text-slate-800 text-base flex items-center space-x-2">
                                 <span>🤖 AI 語意記帳</span>
                             </h3>
-                            <p class="text-xs text-slate-400 leading-relaxed">可以直接輸入一段日常口語、消費對話，AI 會自動為您歸類並填入適當的支付方式與明細！</p>
+                            <p class="text-xs text-slate-400 leading-relaxed">可以直接輸入日常口語對話、點擊麥克風語音輸入，或是上傳發票/收據照片，AI 會自動為您多重歸類並條列明細！</p>
                             
                             <div class="space-y-3">
-                                <textarea id="ai-raw-text" rows="5" placeholder="例如：
+                                <div class="relative">
+                                    <textarea id="ai-raw-text" rows="5" placeholder="例如：
 7/2 中午跟同事去吃外食聚餐，我付了現金$450元。
-下午去全聯刷卡幫寶寶買了日用品花1200元..." class="w-full bg-slate-50 border border-slate-200 text-xs rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-slate-300 leading-relaxed"></textarea>
+下午去全聯刷卡幫寶寶買了日用品花1200元..." class="w-full bg-slate-50 border border-slate-200 text-xs rounded-xl p-3 pb-12 focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-slate-300 leading-relaxed"></textarea>
+                                    
+                                    <!-- 語音與相機工具列 -->
+                                    <div class="absolute bottom-2 right-2 flex space-x-2">
+                                        <button type="button" onclick="startVoiceRecognition()" class="p-2 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 rounded-lg shadow-sm transition active:scale-95" title="語音輸入 (需瀏覽器支援)">
+                                            🎤
+                                        </button>
+                                        <label class="cursor-pointer p-2 bg-indigo-100 text-indigo-700 hover:bg-indigo-200 rounded-lg shadow-sm transition active:scale-95" title="拍照或上傳收據照片">
+                                            📸
+                                            <input type="file" id="ai-image-upload" accept="image/*" capture="environment" class="hidden" onchange="handleAIImageUpload(event)">
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- 上傳圖片預覽區 -->
+                                <div id="ai-image-preview-container" class="hidden relative inline-block">
+                                    <img id="ai-image-preview" class="h-24 w-auto rounded-xl border border-slate-200 shadow-sm object-cover">
+                                    <button type="button" onclick="removeAIImage()" class="absolute -top-2 -right-2 bg-rose-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow-md hover:bg-rose-600 transition">X</button>
+                                </div>
                                 
                                 <button onclick="processAITextInput()" id="btn-ai-analyze" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-xl text-xs font-bold transition shadow flex items-center justify-center space-x-1.5">
-                                    <span>✨ 語意分析此段描述</span>
+                                    <span>✨ 語意 / 影像綜合分析</span>
                                 </button>
                             </div>
 
                             <!-- AI 預覽與匯入控制區 -->
                             <div id="ai-preview-section" class="hidden pt-3 border-t border-slate-100 space-y-3">
                                 <h4 class="text-xs font-bold text-indigo-800 flex items-center justify-between">
-                                    <span>🔍 解析預覽列表:</span>
+                                    <span>🔍 解析預覽列表 (勾選欲匯入項目):</span>
                                     <span id="ai-parsed-count" class="text-[10px] bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-full">0 筆</span>
                                 </h4>
-                                <div id="ai-parsed-items" class="max-h-48 overflow-y-auto space-y-2 no-scrollbar border border-slate-100 rounded-xl p-2 bg-slate-50/50">
+                                <div id="ai-parsed-items" class="max-h-56 overflow-y-auto space-y-2 no-scrollbar border border-slate-100 rounded-xl p-2 bg-slate-50/50">
                                 </div>
                                 <button onclick="importAIParsedTransactions()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-xs font-bold transition shadow-md flex items-center justify-center space-x-1.5">
-                                    <span>✨ 確認批次匯入帳目</span>
+                                    <span>✨ 確認批次匯入選取帳目</span>
                                 </button>
                             </div>
                         </div>
@@ -498,18 +557,20 @@
                                 <span>🎯 月度家庭預算規劃</span>
                             </h2>
                         </div>
-                        
-                        <!-- 預算設定控制區 (改為月度選擇) -->
+                        <!-- 預算設定控制區 (改為分層年月選擇) -->
                         <div class="flex flex-wrap items-center gap-2 self-start md:self-auto">
-                            <!-- 月份選擇 -->
-                            <div class="flex items-center space-x-1.5 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
-                                <button onclick="navigateBudgetMonth(-1)" class="w-7 h-7 flex items-center justify-center bg-white hover:bg-slate-50 border border-slate-200 text-xs font-bold rounded-lg shadow-sm transition active:scale-95" title="上個月">◀</button>
-                                <input type="month" id="budget-month-select" onchange="handleBudgetMonthChange()" class="bg-transparent text-sm font-black text-slate-700 focus:outline-none px-2 py-0.5 cursor-pointer">
-                                <button onclick="navigateBudgetMonth(1)" class="w-7 h-7 flex items-center justify-center bg-white hover:bg-slate-50 border border-slate-200 text-xs font-bold rounded-lg shadow-sm transition active:scale-95" title="下個月">▶</button>
+                            <!-- 分層年月選擇器 -->
+                            <div class="flex items-center space-x-2 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
+                                <button onclick="navigateBudgetMonth(-1)" class="w-6 h-6 flex items-center justify-center bg-white hover:bg-slate-50 border border-slate-200 text-[10px] font-bold rounded shadow-sm transition active:scale-95" title="上個月">◀</button>
+                                <select id="budget-year-select" onchange="handleBudgetPeriodChange()" class="bg-transparent text-sm font-black text-slate-700 focus:outline-none cursor-pointer text-center"></select>
+                                <span class="text-slate-400 font-bold text-xs">年</span>
+                                <select id="budget-month-select" onchange="handleBudgetPeriodChange()" class="bg-transparent text-sm font-black text-slate-700 focus:outline-none cursor-pointer text-center"></select>
+                                <span class="text-slate-400 font-bold text-xs">月</span>
+                                <button onclick="navigateBudgetMonth(1)" class="w-6 h-6 flex items-center justify-center bg-white hover:bg-slate-50 border border-slate-200 text-[10px] font-bold rounded shadow-sm transition active:scale-95" title="下個月">▶</button>
                             </div>
-                            <!-- 複製上月預算按鈕 -->
-                            <button type="button" onclick="copyPreviousMonthBudget()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold px-3 py-1.5 rounded-xl transition flex items-center space-x-1 shadow-sm whitespace-nowrap">
-                                <span>📋 複製上月預算</span>
+                            <!-- 進階複製預算按鈕 -->
+                            <button type="button" onclick="openAdvBudgetCopyModal()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold px-3 py-1.5 rounded-xl transition flex items-center space-x-1 shadow-sm whitespace-nowrap">
+                                <span>📋 進階複製預算</span>
                             </button>
                             <!-- 清除當月資料按鈕 -->
                             <button type="button" onclick="openConfirmModal('clear-current-budget')" class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold px-3 py-1.5 rounded-xl transition flex items-center space-x-1 shadow-sm whitespace-nowrap">
@@ -1125,6 +1186,18 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                                 </button>
                             </div>
                         </div>
+                        
+                        <!-- 危險操作區 (工廠重置) -->
+                        <div class="mt-8 border-t border-slate-200 pt-6">
+                            <h3 class="font-bold text-rose-700 text-sm flex items-center space-x-1.5 mb-2">
+                                <span>⚠️ 危險操作區</span>
+                            </h3>
+                            <p class="text-[11px] text-slate-500 mb-3 leading-relaxed">若您之前有載入測試資料、快取異常，或想完全重新開始，可點擊下方按鈕清空本機所有資料 (恢復出廠狀態)。</p>
+                            <button onclick="openConfirmModal('factory-reset')" class="w-full bg-white border border-rose-300 text-rose-600 hover:bg-rose-50 font-bold text-xs px-4 py-2.5 rounded-xl transition shadow-sm flex justify-center items-center space-x-2">
+                                <span>🗑️ 抹除本機所有資料 (重置快取)</span>
+                            </button>
+                        </div>
+                        
                     </div>
 
                 </div>
@@ -1208,6 +1281,9 @@ function handleBiDirectionalSync(spreadsheet, localData) {
         let activeMgrType = 'expense';
         let activeMgrParent = '';
         let collapsedCategories = {};
+        
+        let aiImageBase64 = null;
+        let aiImageMimeType = null;
 
         // ==========================================
         // 3. 智慧型日期格式化器
@@ -1277,6 +1353,7 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             populateDynamicYearDropdowns();
             initFilterOptions();
             resetForm();
+            initBudgetPeriodDropdowns();
             initBudgetInputs();
             updateSyncStatusUI();
 
@@ -1307,18 +1384,26 @@ function handleBiDirectionalSync(spreadsheet, localData) {
 
         // ◀ ▶ 前後月度快速切換按鈕
         function navigateBudgetMonth(direction) {
-            const select = document.getElementById('budget-month-select');
-            if (!select) return;
+            const yearSel = document.getElementById('budget-year-select');
+            const monthSel = document.getElementById('budget-month-select');
+            if (!yearSel || !monthSel) return;
             
-            let [y, m] = currentBudgetPeriod.split('-');
-            let dateObj = new Date(parseInt(y, 10), parseInt(m, 10) - 1 + direction, 1);
+            let y = parseInt(yearSel.value, 10);
+            let m = parseInt(monthSel.value, 10);
+            
+            let dateObj = new Date(y, m - 1 + direction, 1);
             
             let ny = dateObj.getFullYear();
             let nm = (dateObj.getMonth() + 1).toString().padStart(2, '0');
             
-            currentBudgetPeriod = `${ny}-${nm}`;
-            select.value = currentBudgetPeriod;
-            handleBudgetMonthChange();
+            if(!Array.from(yearSel.options).some(opt => opt.value == ny)) {
+                 yearSel.innerHTML += `<option value="${ny}">${ny}</option>`;
+            }
+            
+            yearSel.value = ny;
+            monthSel.value = nm;
+            
+            handleBudgetPeriodChange();
         }
 
         // ==========================================
@@ -1658,36 +1743,38 @@ function handleBiDirectionalSync(spreadsheet, localData) {
         }
 
         // ==========================================
-        // 7. Gemini LLM 服務
+        // 7. Gemini LLM 服務 (支援多模型自動降級與 Fallback)
         // ==========================================
-        async function fetchWithRetry(url, options, maxRetries = 5) {
-            let delay = 1000;
-            for (let i = 0; i < maxRetries; i++) {
-                try {
-                    const response = await fetch(url, options);
-                    if (response.ok) {
-                        return await response.json();
-                    }
-                } catch (error) {
-                    if (i === maxRetries - 1) throw error;
-                }
-                await new Promise(resolve => setTimeout(resolve, delay));
-                delay *= 2;
-            }
-            throw new Error("連線至 AI 失敗，請重試。");
-        }
-
-        async function callGemini(systemPrompt, userPrompt, jsonSchema = null) {
+        async function callGemini(systemPrompt, userPrompt, jsonSchema = null, base64Image = null, mimeType = null) {
             const activeKey = systemSettings.geminiApiKey || "";
-            // 升級至官方最新 Gemini 2.5 Flash 端點
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${activeKey}`;
             
             if (!activeKey) {
                 throw new Error("請先至設定頁面填入 Gemini API 金鑰！");
             }
 
+            // 🌟 核心升級：使用者指定的模型自動降級順序 (Fallback sequence)
+            // 將依序嘗試，若遇額度耗盡 (429)、模型不支援圖片 (400) 或模型不存在 (404)，會自動無縫切換下一個
+            const modelsToTry = [
+                'gemini-2.5-flash-lite', // 優先嘗試：輕量且免費額度最高
+                'gemma-4-31b-it',        // 次優選：嘗試使用 Gemma 模型
+                'gemini-2.5-flash'       // 最終保底：功能最完整、支援多模態的 Flash 模型
+            ];
+
+            const parts = [];
+            if (userPrompt) parts.push({ text: userPrompt });
+            else parts.push({ text: "請解析這張影像/收據中的所有消費或收入項目。" });
+
+            if (base64Image && mimeType) {
+                parts.push({
+                    inlineData: {
+                        mimeType: mimeType,
+                        data: base64Image
+                    }
+                });
+            }
+
             const payload = {
-                contents: [{ parts: [{ text: userPrompt }] }],
+                contents: [{ parts: parts }],
                 systemInstruction: { parts: [{ text: systemPrompt }] }
             };
 
@@ -1704,200 +1791,41 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                 body: JSON.stringify(payload)
             };
 
-            return await fetchWithRetry(url, options);
+            let lastError = null;
+
+            // 依序嘗試呼叫模型陣列
+            for (const modelName of modelsToTry) {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${activeKey}`;
+                
+                try {
+                    console.log(`🔄 正在嘗試使用 AI 模型: ${modelName} ...`);
+                    const response = await fetch(url, options);
+                    
+                    if (response.ok) {
+                        console.log(`✅ 成功使用模型: ${modelName} 完成解析！`);
+                        return await response.json();
+                    } else {
+                        const errData = await response.json();
+                        console.warn(`⚠️ 模型 ${modelName} 呼叫失敗，準備切換下一個...`, errData);
+                        lastError = new Error(errData.error?.message || `HTTP 錯誤碼 ${response.status}`);
+                        // 遇到錯誤 (如超出免費額度、或純文字模型無法處理圖片)，直接 continue 換下一個保底模型
+                        continue; 
+                    }
+                } catch (error) {
+                    console.warn(`⚠️ 模型 ${modelName} 網路連線例外，準備切換下一個...`, error);
+                    lastError = error;
+                    continue;
+                }
+            }
+
+            // 如果全部陣列中的模型都失敗，才拋出最終錯誤給前端 UI
+            throw new Error(`所有 AI 模型皆嘗試失敗 (可能是額度皆已耗盡或網路異常)。\n最後錯誤: ${lastError.message}`);
         }
 
         // ==========================================
         // 8. 雙向智慧差異同步核心與優先權決策邏輯
         // ==========================================
-        async function sendToGoogleSheet(action, payloadData) {
-            const url = systemSettings.googleScriptUrl;
-            const password = systemSettings.googleScriptPassword;
-            if (!url) return null;
-
-            try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    mode: 'cors',
-                    headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify({
-                        action: action,
-                        password: password,
-                        data: payloadData
-                    })
-                });
-                
-                if (response.ok) {
-                    const resJson = await response.json();
-                    if (resJson.status === "success") return resJson;
-                    throw new Error(resJson.message);
-                }
-                throw new Error("雲端伺服器連線中斷");
-            } catch (err) {
-                showToast(`❌ 同步中斷: ${err.message}`, "error");
-                return null;
-            }
-        }
-
-        function handleSyncButtonClick() {
-            if (!systemSettings.googleScriptUrl) {
-                showToast("❌ 請先在設定中配置 Google Apps Script 網址！", "error");
-                return;
-            }
-
-            const lastSyncTime = parseInt(localStorage.getItem('ok_last_sync_time'), 10) || 0;
-            if (lastSyncTime === 0) {
-                document.getElementById('first-sync-modal').classList.remove('hidden');
-            } else {
-                executeSync("smart");
-            }
-        }
-
-        function closeFirstSyncModal() {
-            document.getElementById('first-sync-modal').classList.add('hidden');
-        }
-
-        function startFirstSync(priority) {
-            closeFirstSyncModal();
-            executeSync(priority);
-        }
-
-        async function executeSync(priorityMode) {
-            showToast("⏳ 正在與雲端進行雙向差異比對與合併...", "info");
-
-            const lastSyncTime = parseInt(localStorage.getItem('ok_last_sync_time'), 10) || 0;
-
-            const localBudgetsList = [];
-            Object.keys(budgets).forEach(ym => {
-                Object.keys(budgets[ym]).forEach(key => {
-                    if (!key.includes(" > ")) return; 
-                    
-                    const item = budgets[ym][key];
-                    const parts = key.split(" > ");
-                    let keyType = 'expense';
-                    if (categoryMap.income[parts[0]] !== undefined) {
-                        keyType = 'income';
-                    }
-                    localBudgetsList.push({
-                        yearMonth: ym,
-                        type: keyType === 'expense' ? '支出' : '收入',
-                        parentCat: parts[0],
-                        subCat: parts[1],
-                        amount: item.amount,
-                        updatedAt: item.updatedAt || Date.now()
-                    });
-                });
-            });
-
-            transactions.forEach(t => { t.date = cleanDateToYMD(t.date); });
-
-            const payload = {
-                localTransactions: transactions,
-                localDeletedTx: deletedTxLog,
-                localBudgets: localBudgetsList,
-                localDeletedBudgets: deletedBudgetLog,
-                lastSyncTime: lastSyncTime,
-                priority: priorityMode
-            };
-
-            const response = await sendToGoogleSheet("syncBiDirectional", payload);
-            if (response && response.status === "success" && response.data) {
-                const cloudData = response.data;
-
-                if (cloudData.hasDuplicateBudget) {
-                    showToast("⚠️ 雲端偵測到重複預算項，已自動為您合併保留最新一筆！", "info");
-                }
-
-                transactions = cloudData.transactions || [];
-                transactions.forEach(t => { t.date = cleanDateToYMD(t.date); });
-                localStorage.setItem('ok_transactions', JSON.stringify(transactions));
-
-                const newBudgets = {};
-                (cloudData.budgets || []).forEach(b => {
-                    if (!newBudgets[b.yearMonth]) newBudgets[b.yearMonth] = {};
-                    if (b.subCat !== "（總計）") {
-                        newBudgets[b.yearMonth][`${b.parentCat} > ${b.subCat}`] = {
-                            amount: b.amount,
-                            updatedAt: b.updatedAt
-                        };
-                    }
-                });
-
-                Object.keys(newBudgets).forEach(ym => {
-                    const targetMonthMap = newBudgets[ym];
-                    ['expense', 'income'].forEach(type => {
-                        Object.keys(categoryMap[type] || {}).forEach(parentCat => {
-                            let sum = 0;
-                            const subs = categoryMap[type][parentCat] || [];
-                            subs.forEach(subCat => {
-                                sum += parseFloat(targetMonthMap[`${parentCat} > ${subCat}`]?.amount) || 0;
-                            });
-                            targetMonthMap[parentCat] = {
-                                amount: sum,
-                                updatedAt: Date.now() 
-                            };
-                        });
-                    });
-                });
-
-                budgets = newBudgets;
-                localStorage.setItem('ok_budgets', JSON.stringify(budgets));
-
-                deletedTxLog = [];
-                deletedBudgetLog = [];
-                localStorage.setItem('ok_deleted_tx_log', JSON.stringify([]));
-                localStorage.setItem('ok_deleted_budget_log', JSON.stringify([]));
-                
-                localStorage.setItem('ok_last_sync_time', Date.now().toString());
-
-                populateDynamicYearDropdowns();
-                initFilterOptions();
-                renderTransactionTable();
-                initBudgetInputs();
-                if (!document.getElementById('tab-dashboard').classList.contains('hidden')) renderDashboard();
-
-                showToast("🎉 雙向智慧差異同步完成！已成功對齊所有端點變更。", "success");
-                updateSyncStatusUI();
-            } else {
-                showToast("❌ 雙向同步失敗，請檢查設定與網路連線！", "error");
-            }
-        }
-
-        function saveSystemSettings() {
-            systemSettings.geminiApiKey = document.getElementById('cfg-gemini-key').value.trim();
-            systemSettings.googleScriptUrl = document.getElementById('cfg-gas-url').value.trim();
-            systemSettings.googleScriptPassword = document.getElementById('cfg-gas-password').value.trim();
-            systemSettings.autoSync = document.getElementById('cfg-auto-sync').checked;
-
-            localStorage.setItem('ok_settings', JSON.stringify(systemSettings));
-            showToast("💾 設定已儲存！", "success");
-            updateSyncStatusUI();
-        }
-
-        async function testGoogleSheetSync() {
-            const url = document.getElementById('cfg-gas-url').value.trim();
-            const password = document.getElementById('cfg-gas-password').value.trim();
-            if (!url || !password) {
-                showToast("❌ 請輸入連線設定！", "error");
-                return;
-            }
-            showToast("⏳ 正在驗證連線...", "info");
-            try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    mode: 'cors',
-                    body: JSON.stringify({ action: "test", password: password })
-                });
-                const res = await response.json();
-                if (res.status === "success") showToast("🎉 雲端伺服器握手連線成功！", "success");
-                else showToast(`❌ 驗證失敗: ${res.message}`, "error");
-            } catch(e) {
-                showToast("❌ 伺服器無回應，請確認部署是否為『任何人(Anyone)』可用", "error");
-            }
-        }
-
-        // ==========================================
-        // 9. AI 快速記帳與分析
+        // 9. AI 快速記帳與分析 (支援語音與影像)
         // ==========================================
         function toggleInputMode(mode) {
             const btnManual = document.getElementById('btn-mode-manual');
@@ -1918,22 +1846,71 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             }
         }
 
+        function handleAIImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                aiImageBase64 = e.target.result.split(',')[1];
+                aiImageMimeType = file.type;
+                document.getElementById('ai-image-preview').src = e.target.result;
+                document.getElementById('ai-image-preview-container').classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removeAIImage() {
+            aiImageBase64 = null;
+            aiImageMimeType = null;
+            document.getElementById('ai-image-upload').value = '';
+            document.getElementById('ai-image-preview-container').classList.add('hidden');
+        }
+
+        function startVoiceRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                showToast("❌ 您的瀏覽器不支援 Web Speech API 語音辨識功能！建議使用 Chrome", "error");
+                return;
+            }
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'zh-TW';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            showToast("🎤 麥克風已啟動，請開始說出消費內容...", "info");
+            
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                const textarea = document.getElementById('ai-raw-text');
+                textarea.value += (textarea.value ? '\n' : '') + transcript;
+                showToast("✅ 語音辨識成功填入！", "success");
+            };
+
+            recognition.onerror = (event) => {
+                showToast(`❌ 語音辨識發生錯誤: ${event.error}`, "error");
+            };
+
+            recognition.start();
+        }
+
         async function processAITextInput() {
             const text = document.getElementById('ai-raw-text').value.trim();
-            if (!text) {
-                showToast("❌ 請輸入記帳內容描述！", "error");
+            if (!text && !aiImageBase64) {
+                showToast("❌ 請輸入描述、語音或上傳照片收據！", "error");
                 return;
             }
 
             const btn = document.getElementById('btn-ai-analyze');
             btn.disabled = true;
-            btn.innerHTML = `<span>⏳ AI 正在歸納分析...</span>`;
+            btn.innerHTML = `<span>⏳ AI 正在視覺與語意綜合分析中...</span>`;
 
             const categoryMetaStr = JSON.stringify(categoryMap);
             const today = new Date();
             const todayStr = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
             
-            const systemPrompt = `你是一個專業的家庭記帳助手。請根據以下分類結構解析描述。今天日期是 ${todayStr}：
+            const systemPrompt = `你是一個專業的家庭記帳助手。請根據以下分類結構，解析使用者提供的文字描述或圖片（如收據/發票）。
+            若有多筆消費或收入，請務必一併辨識出來並獨立條列。今天預設日期是 ${todayStr}：
             ${categoryMetaStr}`;
 
             const jsonSchema = {
@@ -1960,22 +1937,22 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             };
 
             try {
-                const result = await callGemini(systemPrompt, text, jsonSchema);
+                const result = await callGemini(systemPrompt, text, jsonSchema, aiImageBase64, aiImageMimeType);
                 const rawJson = result.candidates?.[0]?.content?.parts?.[0]?.text;
                 parsedAITransactions = JSON.parse(rawJson).transactions || [];
 
                 if (parsedAITransactions.length === 0) {
-                    showToast("🔍 AI 無法識別，請調整內容後重試", "info");
+                    showToast("🔍 AI 無法識別出記帳項目，請補充內容後重試", "info");
                     document.getElementById('ai-preview-section').classList.add('hidden');
                 } else {
                     renderAIPreviewList();
-                    showToast(`✨ 解析出 ${parsedAITransactions.length} 筆項目！`, "success");
+                    showToast(`✨ 成功解析出 ${parsedAITransactions.length} 筆項目！`, "success");
                 }
             } catch (err) {
                 showToast(`❌ 分析失敗: ${err.message}`, "error");
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = `<span>✨ 語意分析此段描述</span>`;
+                btn.innerHTML = `<span>✨ 語意 / 影像綜合分析</span>`;
             }
         }
 
@@ -1995,20 +1972,22 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                 const amtColor = isInc ? (tx.amount >= 0 ? 'text-emerald-600' : 'text-rose-600') : (tx.amount >= 0 ? 'text-rose-600' : 'text-emerald-600');
                 const methodBadge = tx.payMethod === '信用卡' ? `<span class="px-1 py-0.2 bg-blue-50 text-blue-700 rounded text-[10px]">💳 ${tx.payMethod}</span>` : `<span class="px-1 py-0.2 bg-amber-50 text-amber-700 rounded text-[10px]">💵 ${tx.payMethod}</span>`;
 
-                card.className = "p-2 bg-white rounded-lg border border-slate-100 flex items-center justify-between text-xs shadow-sm animate-fade-in";
+                card.className = "p-3 bg-white rounded-lg border border-slate-200 flex items-center justify-between text-xs shadow-sm hover:shadow transition";
                 card.innerHTML = `
-                    <div class="space-y-0.5">
-                        <div class="flex items-center space-x-1.5">
-                            <span class="text-[10px] text-slate-400">${tx.date}</span>
-                            <span class="px-1 py-0.2 rounded font-bold ${isInc ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}">${isInc ? '收入' : '支出'}</span>
-                            ${methodBadge}
+                    <div class="flex items-start gap-3 w-full">
+                        <input type="checkbox" class="ai-import-chk mt-1 w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer" data-idx="${idx}" checked>
+                        <div class="flex-1 min-w-0 space-y-1">
+                            <div class="flex items-center space-x-1.5 flex-wrap gap-y-1">
+                                <span class="text-[10px] text-slate-400 font-bold">${tx.date}</span>
+                                <span class="px-1 py-0.2 rounded font-bold ${isInc ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}">${isInc ? '收入' : '支出'}</span>
+                                ${methodBadge}
+                            </div>
+                            <div class="font-extrabold text-slate-700">${tx.parentCat} &gt; ${tx.subCat}</div>
+                            <div class="text-[10px] text-slate-500 line-clamp-2" title="${tx.note}">${tx.note}</div>
                         </div>
-                        <div class="font-bold text-slate-700">${tx.parentCat} &gt; ${tx.subCat}</div>
-                        <div class="text-[10px] text-slate-400 truncate max-w-[150px]">${tx.note}</div>
-                    </div>
-                    <div class="flex items-center space-x-2">
-                        <span class="font-extrabold ${amtColor}">${displaySymbol}$${absAmount.toLocaleString()}</span>
-                        <button onclick="removeAITransactionItem(${idx})" class="text-rose-400 hover:text-rose-600 font-bold p-1">✕</button>
+                        <div class="flex flex-col items-end justify-center shrink-0">
+                            <span class="font-black text-sm md:text-base ${amtColor}">${displaySymbol}$${absAmount.toLocaleString()}</span>
+                        </div>
                     </div>
                 `;
                 container.appendChild(card);
@@ -2016,16 +1995,21 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             section.classList.remove('hidden');
         }
 
-        function removeAITransactionItem(index) {
-            parsedAITransactions.splice(index, 1);
-            if (parsedAITransactions.length === 0) document.getElementById('ai-preview-section').classList.add('hidden');
-            else renderAIPreviewList();
-        }
-
         async function importAIParsedTransactions() {
             if (parsedAITransactions.length === 0) return;
 
-            parsedAITransactions.forEach(tx => {
+            const checkboxes = document.querySelectorAll('.ai-import-chk:checked');
+            if (checkboxes.length === 0) {
+                showToast("⚠️ 請至少勾選一筆欲匯入的帳目", "info");
+                return;
+            }
+
+            let importCount = 0;
+            const selectedIndices = Array.from(checkboxes).map(c => parseInt(c.dataset.idx));
+            
+            // 倒序匯入確保時間軸最新在最上方
+            selectedIndices.sort((a,b) => b - a).forEach(idx => {
+                const tx = parsedAITransactions[idx];
                 transactions.unshift({
                     id: 'tx-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
                     date: cleanDateToYMD(tx.date),
@@ -2037,16 +2021,18 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                     note: tx.note,
                     updatedAt: Date.now()
                 });
+                importCount++;
             });
 
             localStorage.setItem('ok_transactions', JSON.stringify(transactions));
-            showToast(`🎉 已智慧匯入 ${parsedAITransactions.length} 筆帳目！`, "success");
+            showToast(`🎉 已成功將 ${importCount} 筆勾選項目匯入本機帳本！`, "success");
 
             if (systemSettings.autoSync && systemSettings.googleScriptUrl) {
                 handleSyncButtonClick();
             }
             
             document.getElementById('ai-raw-text').value = '';
+            removeAIImage();
             document.getElementById('ai-preview-section').classList.add('hidden');
             parsedAITransactions = [];
 
@@ -2370,7 +2356,7 @@ function handleBiDirectionalSync(spreadsheet, localData) {
         }
 
         // ==========================================
-        // 11. 月度預算規劃 (獨立切換與自動換行)
+        // 11. 月度預算規劃 (獨立切換與進階複製)
         // ==========================================
         function setBudgetTab(tab) {
             activeBudgetTab = tab;
@@ -2392,17 +2378,38 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             }
         }
 
-        function handleBudgetMonthChange() {
-            currentBudgetPeriod = document.getElementById('budget-month-select').value;
-            if(!currentBudgetPeriod) {
-                currentBudgetPeriod = `${currentYearNum}-${currentMonthNum.toString().padStart(2, '0')}`;
-                document.getElementById('budget-month-select').value = currentBudgetPeriod;
+        function initBudgetPeriodDropdowns() {
+            const yearSel = document.getElementById('budget-year-select');
+            const monthSel = document.getElementById('budget-month-select');
+            yearSel.innerHTML = ''; monthSel.innerHTML = '';
+            
+            let startYear = currentYearNum - 2;
+            let endYear = currentYearNum + 3;
+            for(let y = startYear; y <= endYear; y++) {
+                yearSel.innerHTML += `<option value="${y}">${y}</option>`;
             }
+            for(let m = 1; m <= 12; m++) {
+                let mStr = m.toString().padStart(2, '0');
+                monthSel.innerHTML += `<option value="${mStr}">${mStr}</option>`;
+            }
+            
+            let [curY, curM] = currentBudgetPeriod.split('-');
+            yearSel.value = curY;
+            monthSel.value = curM;
+        }
+
+        function handleBudgetPeriodChange() {
+            const y = document.getElementById('budget-year-select').value;
+            const m = document.getElementById('budget-month-select').value;
+            currentBudgetPeriod = `${y}-${m}`;
             initBudgetInputs();
         }
 
         function initBudgetInputs() {
-            document.getElementById('budget-month-select').value = currentBudgetPeriod;
+            let [curY, curM] = currentBudgetPeriod.split('-');
+            document.getElementById('budget-year-select').value = curY;
+            document.getElementById('budget-month-select').value = curM;
+            
             const expContainer = document.getElementById('budget-section-expense');
             const incContainer = document.getElementById('budget-section-income');
 
@@ -2410,8 +2417,7 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             incContainer.innerHTML = '';
 
             // 取得上個月字串
-            let [y, m] = currentBudgetPeriod.split('-');
-            let dObj = new Date(parseInt(y, 10), parseInt(m, 10) - 2, 1); // JS月份 0-11
+            let dObj = new Date(parseInt(curY, 10), parseInt(curM, 10) - 2, 1); // JS月份 0-11
             let prevYM = `${dObj.getFullYear()}-${(dObj.getMonth() + 1).toString().padStart(2, '0')}`;
 
             const prevMonthBudgets = budgets[prevYM] || {};
@@ -2562,33 +2568,89 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             updateSaveBudgetButtonState();
         }
 
-        function copyPreviousMonthBudget() {
-            let [y, m] = currentBudgetPeriod.split('-');
-            let dObj = new Date(parseInt(y, 10), parseInt(m, 10) - 2, 1);
-            let prevYM = `${dObj.getFullYear()}-${(dObj.getMonth() + 1).toString().padStart(2, '0')}`;
-
-            const prevBudgets = budgets[prevYM];
+        // === 進階預算複製功能 ===
+        function openAdvBudgetCopyModal() {
+            const srcYearSel = document.getElementById('adv-copy-src-year');
+            const srcMonthSel = document.getElementById('adv-copy-src-month');
             
-            if (!prevBudgets || Object.keys(prevBudgets).length === 0) {
-                showToast(`❌ 找不到上個月份 (${prevYM}) 的預算紀錄！`, "error");
-                return;
+            srcYearSel.innerHTML = '';
+            let startYear = currentYearNum - 2;
+            let endYear = currentYearNum + 2;
+            for(let y = startYear; y <= endYear; y++) {
+                srcYearSel.innerHTML += `<option value="${y}">${y} 年</option>`;
             }
-
-            const copied = {};
-            Object.keys(prevBudgets).forEach(key => {
-                copied[key] = {
-                    amount: prevBudgets[key].amount,
-                    updatedAt: Date.now()
-                };
-            });
-
-            budgets[currentBudgetPeriod] = copied;
             
-            initBudgetInputs();
-            isBudgetPageDirty = true;
-            updateSaveBudgetButtonState();
+            // 預設來源為目前的上一年
+            let [curY, curM] = currentBudgetPeriod.split('-');
+            srcYearSel.value = (parseInt(curY) - 1).toString();
             
-            showToast(`📋 已從 ${prevYM} 完整複製預算數據！請點擊右下角「儲存」同步至雲端。`, "info");
+            document.getElementById('adv-budget-copy-modal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('adv-budget-copy-box').classList.remove('scale-95'), 10);
+            updateAdvCopyDesc();
+            
+            srcYearSel.onchange = updateAdvCopyDesc;
+            srcMonthSel.onchange = updateAdvCopyDesc;
+        }
+
+        function updateAdvCopyDesc() {
+            const srcM = document.getElementById('adv-copy-src-month').value;
+            const targetDesc = document.getElementById('adv-copy-target-desc');
+            let [curY, curM] = currentBudgetPeriod.split('-');
+            
+            if (srcM === 'all') {
+                targetDesc.innerHTML = `將完整覆蓋目前所選的 <b>[${curY} 年度]</b> 總計 1~12 月的所有預算資料。`;
+            } else {
+                targetDesc.innerHTML = `將完整覆蓋目前畫面上所選的 <b>[${curY}年 ${curM}月]</b> 單月份預算資料。`;
+            }
+        }
+
+        function executeAdvBudgetCopy() {
+            const srcY = document.getElementById('adv-copy-src-year').value;
+            const srcM = document.getElementById('adv-copy-src-month').value;
+            let [curY, curM] = currentBudgetPeriod.split('-');
+            
+            let copyCount = 0;
+            
+            if (srcM === 'all') {
+                for(let m = 1; m <= 12; m++) {
+                    let mStr = m.toString().padStart(2, '0');
+                    let sourceYM = `${srcY}-${mStr}`;
+                    let targetYM = `${curY}-${mStr}`;
+                    
+                    if (budgets[sourceYM]) {
+                        budgets[targetYM] = JSON.parse(JSON.stringify(budgets[sourceYM])); // deep copy
+                        Object.keys(budgets[targetYM]).forEach(k => {
+                            budgets[targetYM][k].updatedAt = Date.now();
+                        });
+                        copyCount++;
+                    }
+                }
+            } else {
+                let sourceYM = `${srcY}-${srcM}`;
+                let targetYM = currentBudgetPeriod;
+                if (budgets[sourceYM]) {
+                    budgets[targetYM] = JSON.parse(JSON.stringify(budgets[sourceYM]));
+                    Object.keys(budgets[targetYM]).forEach(k => {
+                        budgets[targetYM][k].updatedAt = Date.now();
+                    });
+                    copyCount++;
+                }
+            }
+            
+            if(copyCount === 0) {
+                showToast("❌ 來源期間尚未建立任何預算資料可供複製！", "error");
+            } else {
+                showToast(`🎉 成功從來源複製了 ${copyCount} 個月份的預算資料！(尚未存入雲端，請點擊畫面右下角儲存)`, "success");
+                initBudgetInputs();
+                isBudgetPageDirty = true;
+                updateSaveBudgetButtonState();
+                closeAdvBudgetCopyModal();
+            }
+        }
+        
+        function closeAdvBudgetCopyModal() {
+            document.getElementById('adv-budget-copy-box').classList.add('scale-95');
+            setTimeout(() => document.getElementById('adv-budget-copy-modal').classList.add('hidden'), 150);
         }
 
         function toggleBudgetCollapse(parentCat) {
@@ -3574,6 +3636,17 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                     isBudgetPageDirty = true;
                     updateSaveBudgetButtonState();
                     showToast(`🗑️ ${currentBudgetPeriod} 預算已清零！請點擊右下角「儲存」按鈕確認。`, "info");
+                };
+            } else if (actionType === 'factory-reset') {
+                icon.innerText = "🚨";
+                title.innerText = "確認抹除本機所有資料？";
+                message.innerText = "這將徹底清空瀏覽器中的所有記帳、預算與設定快取，並將頁面重置。此操作無法復原，請確認！";
+                btnAction.innerText = "確認清空並重啟";
+                btnAction.className = "flex-1 bg-rose-600 hover:bg-rose-700 text-white py-2.5 rounded-xl text-xs font-bold transition shadow-md";
+                confirmActionCallback = () => {
+                    localStorage.clear();
+                    showToast("♻️ 正在還原出廠設定...", "info");
+                    setTimeout(() => location.reload(), 1000);
                 };
             }
         }
