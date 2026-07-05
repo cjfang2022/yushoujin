@@ -12,6 +12,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <!-- html2pdf.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght=300;400;500;700;900&display=swap');
         body {
@@ -225,8 +226,8 @@
                 </div>
             </div>
 
-            <!-- 🌟 頂端共用雲端資料同步看板 (雙向智慧差異同步) 🌟 -->
-            <div class="bg-white p-3 md:p-4 rounded-2xl border border-slate-100 shadow-sm mb-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <!-- 頂端共用雲端資料同步看板 -->
+            <div class="bg-white p-3 md:p-4 rounded-2xl border border-slate-100 shadow-sm mb-6 flex flex-col sm:flex-row items-center justify-between gap-3 font-sans">
                 <div class="flex flex-row items-center gap-3 w-full sm:w-auto">
                     <div class="p-2 md:p-2.5 bg-indigo-50 text-indigo-600 rounded-xl text-lg md:text-xl shrink-0">
                         🔄
@@ -317,7 +318,6 @@
                     <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 lg:col-span-1">
                         <h3 class="font-bold text-slate-700 mb-4">⚠️ 當月預算狀態警戒區</h3>
                         <div id="dashboard-budget-alerts" class="space-y-3 max-h-[350px] overflow-y-auto no-scrollbar">
-                            <!-- JS 動態生成 -->
                             <p class="text-sm text-slate-400">目前預算狀態良好，無超支項目！</p>
                         </div>
                     </div>
@@ -338,9 +338,7 @@
                                         <th class="py-2 text-right">金額</th>
                                     </tr>
                                 </thead>
-                                <tbody id="dashboard-recent-transactions" class="divide-y divide-slate-50">
-                                    <!-- JS 動態生成 -->
-                                </tbody>
+                                <tbody id="dashboard-recent-transactions" class="divide-y divide-slate-50"></tbody>
                             </table>
                         </div>
                     </div>
@@ -465,7 +463,7 @@
 
                                 <!-- 上傳圖片預覽區 -->
                                 <div id="ai-image-preview-container" class="hidden relative inline-block">
-                                    <img id="ai-image-preview" class="h-24 w-auto rounded-xl border border-slate-200 shadow-sm object-cover">
+                                    <img id="ai-image-preview" class="h-24 w-auto rounded-xl border border-slate-200 shadow-sm object-cover" alt="AI Preview Image">
                                     <button type="button" onclick="removeAIImage()" class="absolute -top-2 -right-2 bg-rose-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow-md hover:bg-rose-600 transition">X</button>
                                 </div>
                                 
@@ -506,16 +504,12 @@
                                     <option value="income">僅看收入</option>
                                 </select>
                                 <select id="filter-year" onchange="renderTransactionTable()" class="bg-slate-50 border border-slate-200 text-xs rounded-lg px-2.5 py-2 focus:outline-none">
-                                    <!-- 動態生成年份 -->
                                 </select>
                                 <select id="filter-month" onchange="renderTransactionTable()" class="bg-slate-50 border border-slate-200 text-xs rounded-lg px-2.5 py-2 focus:outline-none">
-                                    <!-- 動態生成月份 -->
                                 </select>
                                 <select id="filter-parent" onchange="handleParentFilterChange()" class="bg-slate-50 border border-slate-200 text-xs rounded-lg px-2.5 py-2 focus:outline-none">
-                                    <!-- 動態生成大類 -->
                                 </select>
                                 <select id="filter-sub" onchange="renderTransactionTable()" class="bg-slate-50 border border-slate-200 text-xs rounded-lg px-2.5 py-2 focus:outline-none">
-                                    <!-- 動態生成細項 -->
                                 </select>
                                 <input type="text" id="search-note" oninput="renderTransactionTable()" placeholder="搜尋備註..." class="col-span-2 md:col-span-1 bg-slate-50 border border-slate-200 text-xs rounded-lg px-2.5 py-2 focus:outline-none w-full md:w-40">
                             </div>
@@ -557,7 +551,8 @@
                                 <span>🎯 月度家庭預算規劃</span>
                             </h2>
                         </div>
-                        <!-- 預算設定控制區 (改為分層年月選擇) -->
+                        
+                        <!-- 預算設定控制區 -->
                         <div class="flex flex-wrap items-center gap-2 self-start md:self-auto">
                             <!-- 分層年月選擇器 -->
                             <div class="flex items-center space-x-2 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
@@ -614,12 +609,10 @@
                     <div>
                         <!-- 支出類別預算 -->
                         <div id="budget-section-expense" class="space-y-3 max-h-[500px] overflow-y-auto pr-2 no-scrollbar">
-                            <!-- JS 動態生成樹狀摺疊 inputs -->
                         </div>
 
                         <!-- 收入類別預算目標 -->
                         <div id="budget-section-income" class="hidden space-y-3 max-h-[500px] overflow-y-auto pr-2 no-scrollbar">
-                            <!-- JS 動態生成樹狀摺疊 inputs -->
                         </div>
                     </div>
 
@@ -633,7 +626,6 @@
 
             <!-- TAB 4: 家庭收支報告 -->
             <section id="tab-reports" class="space-y-6 tab-content hidden">
-                
                 <!-- 報表篩選配置 -->
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
                     <h3 class="font-bold text-slate-800 mb-4 flex items-center space-x-2">
@@ -711,7 +703,7 @@
 
                     <!-- 2. 財務結構與分配 -->
                     <div class="space-y-4">
-                        <h2 class="text-xs md:text-sm font-bold text-slate-800 border-l-4 border-emerald-600 pl-2">二、 財務結構與分配 (圓餅與對照)</h2>
+                        <h2 class="text-xs md:text-sm font-bold text-slate-800 border-l-4 border-emerald-600 pl-2">二、 財務結構與分配</h2>
                         
                         <!-- 第一排：左右並排圓餅圖 -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pdf-grid-force pdf-section">
@@ -769,8 +761,7 @@
                                         <th class="py-3 px-4 text-center">狀態說明</th>
                                     </tr>
                                 </thead>
-                                <tbody id="report-budget-table-rows" class="divide-y divide-slate-100">
-                                </tbody>
+                                <tbody id="report-budget-table-rows" class="divide-y divide-slate-100"></tbody>
                             </table>
                         </div>
                     </div>
@@ -789,8 +780,7 @@
                                         <th class="py-2.5 px-4 text-right">交易金額</th>
                                     </tr>
                                 </thead>
-                                <tbody id="report-top-expenses-rows" class="divide-y divide-slate-100">
-                                </tbody>
+                                <tbody id="report-top-expenses-rows" class="divide-y divide-slate-100"></tbody>
                             </table>
                         </div>
                     </div>
@@ -806,11 +796,10 @@
                                 <div class="flex items-center space-x-1.5 text-indigo-800 font-bold">
                                     <span>🤖 AI 智慧理財顧問深度評估:</span>
                                 </div>
-                                <div id="ai-advisor-output" class="text-xs leading-relaxed space-y-2 whitespace-pre-wrap">
-                                </div>
+                                <div id="ai-advisor-output" class="text-xs leading-relaxed space-y-2 whitespace-pre-wrap"></div>
                             </div>
                         </div>
-                        <div class="text-right space-y-1 shrink-0">
+                        <div class="text-right space-y-1 shrink-0 font-sans">
                             <p>家庭管帳印鑑：_______________</p>
                             <p id="report-print-date">日期：載入中...</p>
                         </div>
@@ -821,7 +810,7 @@
 
             <!-- TAB 5: 系統與金鑰設定 -->
             <section id="tab-settings" class="space-y-6 tab-content hidden">
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 font-sans">
                     
                     <!-- 1. 左側卡片：記帳大類/細項管理區 -->
                     <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
@@ -839,8 +828,7 @@
                             <!-- 大類項目清單 -->
                             <div class="space-y-2 border border-slate-200/60 p-3 rounded-xl bg-slate-50/50">
                                 <span class="text-xs font-bold text-slate-500">1. 大類清單</span>
-                                <div id="mgr-parent-list" class="space-y-1 max-h-48 overflow-y-auto no-scrollbar">
-                                </div>
+                                <div id="mgr-parent-list" class="space-y-1 max-h-48 overflow-y-auto no-scrollbar"></div>
                                 <div class="flex space-x-1 pt-1">
                                     <input type="text" id="new-parent-name" placeholder="新增大類..." class="w-full bg-white border border-slate-200 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-emerald-500">
                                     <button onclick="addParentCategory()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-2.5 rounded-lg transition shrink-0">+</button>
@@ -853,8 +841,7 @@
                                     <span>2. 細項清單</span>
                                     <span id="mgr-selected-parent-lbl" class="text-indigo-600 font-extrabold truncate max-w-[80px]"></span>
                                 </div>
-                                <div id="mgr-sub-list" class="space-y-1 max-h-48 overflow-y-auto no-scrollbar">
-                                </div>
+                                <div id="mgr-sub-list" class="space-y-1 max-h-48 overflow-y-auto no-scrollbar"></div>
                                 <div class="flex space-x-1 pt-1">
                                     <input type="text" id="new-sub-name" placeholder="新增細項..." class="w-full bg-white border border-slate-200 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-emerald-500">
                                     <button onclick="addSubCategory()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-2.5 rounded-lg transition shrink-0">+</button>
@@ -863,7 +850,7 @@
                         </div>
                     </div>
 
-                    <!-- 2. 右側卡片：金鑰與 Google Sheets 同步設定區 (對齊左側卡片樣式) -->
+                    <!-- 2. 右側卡片：金鑰與 Google Sheets 同步設定區 -->
                     <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
                         <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-1.5">
                             <span>🔑 個人私有金鑰與雲端設定</span>
@@ -873,7 +860,7 @@
                         <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
                             <div>
                                 <label class="block text-xs font-bold text-slate-600 mb-1">Gemini API 金鑰：</label>
-                                <input type="password" id="cfg-gemini-key" placeholder="貼上您的 Gemini API Key (AI 功能使用)" class="w-full bg-white border border-slate-200 text-xs rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono">
+                                <input type="password" id="cfg-gemini-key" placeholder="貼上您的 Gemini API Key" class="w-full bg-white border border-slate-200 text-xs rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono">
                                 <span class="text-[10px] text-slate-400 mt-1 block">留空則不啟用，若填入將在部署時安全地供您個人網頁調用。</span>
                             </div>
                             
@@ -887,11 +874,10 @@
                                 </summary>
                                 <div class="mt-3 space-y-2 cursor-default" onclick="event.stopPropagation()">
                                     <ol class="list-decimal list-inside space-y-1.5 text-[11px] text-slate-600 leading-relaxed">
-                                        <li>前往 <a href="https://aistudio.google.com/" target="_blank" class="text-blue-600 hover:underline font-bold">Google AI Studio</a> 並登入您的 Google 帳號。</li>
+                                        <li>前往 <a href="https://aistudio.google.com/" target="_blank" class="text-blue-600 hover:underline font-bold">Google AI Studio</a> 並登入。</li>
                                         <li>點擊左側選單的 <b>"Get API key"</b>。</li>
-                                        <li>點選 <b>"Create API key"</b> 按鈕，並選擇建立在新的或現有的 Google Cloud 專案中。</li>
-                                        <li>複製產生的字串，貼回上方的輸入框並點擊下方儲存即可！</li>
-                                        <li><span class="text-slate-400">註：我們已將核心模型升級為最新的 gemini-2.5-flash，反應更快速聰明且免費額度充足。</span></li>
+                                        <li>點選 <b>"Create API key"</b> 新增金鑰。</li>
+                                        <li>複製該金鑰貼回上方即可，我們已採用降級 Fallback 最佳化免費額度調度。</li>
                                     </ol>
                                 </div>
                             </details>
@@ -907,7 +893,7 @@
                             <details class="bg-indigo-50/70 border border-indigo-100 rounded-xl p-3 text-xs text-slate-600 cursor-pointer group">
                                 <summary class="font-bold text-indigo-950 flex items-center justify-between outline-none select-none list-none">
                                     <span class="flex items-center space-x-1">
-                                        <span class="text-rose-600 animate-pulse mr-1">🔥架構大升級</span>
+                                        <span class="text-rose-600 animate-pulse mr-1">🔥核心同步</span>
                                         <span>💡 如何建立 Google Apps Script 雲端同步？</span>
                                     </span>
                                     <span class="transition-transform duration-200 group-open:rotate-180 text-[10px]">▼</span>
@@ -1149,19 +1135,24 @@ function handleBiDirectionalSync(spreadsheet, localData) {
   
   return { transactions: finalTxList, budgets: finalBgList, hasDuplicateBudget: hasDuplicateBudget };
 }</textarea>
-                                    <div class="text-[9px] text-slate-400 mt-1 text-right">💡 提示：點擊框內按下 Ctrl+A (或 Cmd+A) 即可一鍵複製。</div>
-                                </div>
+                                        <div class="text-[9px] text-slate-400 mt-1 text-right">💡 提示：點擊框內按下 Ctrl+A (或 Cmd+A) 即可一鍵複製。</div>
+                                    </div>
 
-                                <ol class="list-decimal list-inside space-y-1 text-[11px] text-slate-600 leading-relaxed" start="4">
-                                    <li>將程式碼第 2 行的 <code class="bg-indigo-100 text-indigo-900 px-1 rounded font-mono">"請設定您的密碼"</code> 改為您自訂的密碼並記下。</li>
-                                    <li>點擊上方的<b>「儲存專案 (💾)」</b>。</li>
-                                    <li>點選右上角<b>「部署」➔「管理部署作業」</b>。</li>
-                                    <li>點選右側的<b>鉛筆圖示 (編輯)</b>，在「版本」下拉選單中選擇<b>「建立新版本 (New version)」</b>，點選「部署」。</li>
-                                    <li>這非常重要，若沒選新版本，雲端程式碼不會更新！完成後將網址填入下方。</li>
-                                </ol>
+                                    <ol class="list-decimal list-inside space-y-1 text-[11px] text-slate-600 leading-relaxed" start="4">
+                                        <li>將程式碼第 2 行的 <code class="bg-indigo-100 text-indigo-900 px-1 rounded font-mono">"請設定您的密碼"</code> 改為您自訂的密碼並記下。</li>
+                                        <li>點擊上方的<b>「儲存專案 (💾)」</b>。</li>
+                                        <li>點選右上角<b>「部署」➔「管理部署作業」</b>。</li>
+                                        <li>點選右側的<b>鉛筆圖示 (編輯)</b>，在「版本」下拉選單中選擇<b>「建立新版本 (New version)」</b>，點選「部署」。</li>
+                                        <li>這非常重要，若沒選新版本，雲端程式碼不會更新！完成後將網址填入下方。</li>
+                                    </ol>
+                                </div>
                             </details>
 
-                            <!-- 安全存取密碼 -->
+                            <div class="flex items-center space-x-2 pt-2">
+                                <input type="checkbox" id="cfg-auto-sync" class="rounded text-emerald-600 focus:ring-emerald-500 h-4 w-4">
+                                <label for="cfg-auto-sync" class="text-xs font-bold text-slate-600">自動在背景進行雙向智慧同步</label>
+                            </div>
+
                             <div>
                                 <label class="block text-xs font-bold text-slate-600 mb-1">Google Apps Script 存取密碼：</label>
                                 <div class="relative">
@@ -1172,21 +1163,16 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                                 </div>
                             </div>
 
-                            <div class="flex items-center space-x-2 pt-2">
-                                <input type="checkbox" id="cfg-auto-sync" class="rounded text-emerald-600 focus:ring-emerald-500 h-4 w-4">
-                                <label for="cfg-auto-sync" class="text-xs font-bold text-slate-600">每次記帳或變動時自動在背景進行雙向同步</label>
-                            </div>
-
                             <div class="flex space-x-2 pt-2">
                                 <button onclick="saveSystemSettings()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2 rounded-lg transition text-center shadow">
                                     💾 儲存設定
                                 </button>
                                 <button onclick="testGoogleSheetSync()" class="flex-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs py-2 rounded-lg transition text-center border border-indigo-200">
-                                    🔄 測試 Google Sheets 連線
+                                    🔄 測試連線
                                 </button>
                             </div>
                         </div>
-                        
+
                         <!-- 危險操作區 (工廠重置) -->
                         <div class="mt-8 border-t border-slate-200 pt-6">
                             <h3 class="font-bold text-rose-700 text-sm flex items-center space-x-1.5 mb-2">
@@ -1197,7 +1183,6 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                                 <span>🗑️ 抹除本機所有資料 (重置快取)</span>
                             </button>
                         </div>
-                        
                     </div>
 
                 </div>
@@ -1212,10 +1197,8 @@ function handleBiDirectionalSync(spreadsheet, localData) {
         <p class="mt-1 text-slate-500">使用 HTML5 / Tailwind CSS / Chart.js / html2pdf.js 與 Gemini AI 核心技術構建</p>
     </footer>
 
+    <!-- JS 邏輯控制區 -->
     <script>
-        // ==========================================
-        // 1. 資料庫預設定義 (名詞全面統一為大類與細項)
-        // ==========================================
         const CATEGORY_MAP = {
             expense: {
                 "餐飲飲食": ["伙食", "外食"],
@@ -1240,15 +1223,11 @@ function handleBiDirectionalSync(spreadsheet, localData) {
         const todayDateObj = new Date();
         const currentYearNum = todayDateObj.getFullYear(); 
         const currentMonthNum = todayDateObj.getMonth() + 1;
-        // 預設預算月度: YYYY-MM
         let currentBudgetPeriod = `${currentYearNum}-${currentMonthNum.toString().padStart(2, '0')}`;
         let activeBudgetTab = 'expense';
 
-        // ==========================================
-        // 2. 核心變數與狀態
-        // ==========================================
         let transactions = [];
-        let budgets = {}; // 格式由 YYYY 改為 YYYY-MM
+        let budgets = {};
         let categoryMap = {}; 
         
         let currentFormType = 'expense';
@@ -1285,9 +1264,6 @@ function handleBiDirectionalSync(spreadsheet, localData) {
         let aiImageBase64 = null;
         let aiImageMimeType = null;
 
-        // ==========================================
-        // 3. 智慧型日期格式化器
-        // ==========================================
         function cleanDateToYMD(dateStr) {
             if (!dateStr) return "";
             const d = new Date(dateStr);
@@ -1298,9 +1274,6 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             return `${y}-${m}-${day}`;
         }
 
-        // ==========================================
-        // 4. 初始化
-        // ==========================================
         window.onload = function() {
             if (typeof ChartDataLabels !== 'undefined') {
                 Chart.register(ChartDataLabels);
@@ -1313,11 +1286,12 @@ function handleBiDirectionalSync(spreadsheet, localData) {
 
             initCategoryMap();
 
+            // 確保全新初始是空的 (移除所有硬編碼 mock 資料)
             if (localStorage.getItem('ok_transactions')) {
                 transactions = JSON.parse(localStorage.getItem('ok_transactions'));
                 transactions.forEach(t => { 
                     if (!t.updatedAt) t.updatedAt = Date.now(); 
-                    if (!t.payMethod) t.payMethod = '現金'; // 舊資料預設補上
+                    if (!t.payMethod) t.payMethod = '現金';
                     t.date = cleanDateToYMD(t.date);
                 });
             } else {
@@ -1330,7 +1304,6 @@ function handleBiDirectionalSync(spreadsheet, localData) {
 
             if (localStorage.getItem('ok_budgets')) {
                 budgets = JSON.parse(localStorage.getItem('ok_budgets'));
-                // 自動轉移舊的年度預算 (YYYY) 到當前年份的1月 (YYYY-01) 避免資料流失
                 Object.keys(budgets).forEach(key => {
                     if (key.length === 4) {
                         budgets[`${key}-01`] = budgets[key];
@@ -1366,7 +1339,6 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             switchTab('dashboard');
         };
 
-        // 🚀 動態年份滾動生成器 (記帳篩選用)
         function populateDynamicYearDropdowns() {
             const filterYear = document.getElementById('filter-year');
             if (!filterYear) return;
@@ -1382,7 +1354,6 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             filterYear.value = currentYearNum.toString();
         }
 
-        // ◀ ▶ 前後月度快速切換按鈕
         function navigateBudgetMonth(direction) {
             const yearSel = document.getElementById('budget-year-select');
             const monthSel = document.getElementById('budget-month-select');
@@ -1390,7 +1361,6 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             
             let y = parseInt(yearSel.value, 10);
             let m = parseInt(monthSel.value, 10);
-            
             let dateObj = new Date(y, m - 1 + direction, 1);
             
             let ny = dateObj.getFullYear();
@@ -1406,9 +1376,6 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             handleBudgetPeriodChange();
         }
 
-        // ==========================================
-        // 5. 自訂分類項目管理器
-        // ==========================================
         function initCategoryMap() {
             if (localStorage.getItem('ok_category_map')) {
                 categoryMap = JSON.parse(localStorage.getItem('ok_category_map'));
@@ -1656,10 +1623,6 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             updateSyncStatusUI();
         }
 
-        // ==========================================
-        // 6. 導覽與輔助
-        // ==========================================
-        // 取得單一月份的預算
         function getBudgetForCategory(yearMonth, parentCat, subCat = null) {
             const ymBudgets = budgets[yearMonth];
             if (!ymBudgets) return 0;
@@ -1670,7 +1633,6 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             return parseFloat(ymBudgets[parentCat]?.amount) || 0;
         }
 
-        // 計算區間內所有月份預算總額 (報表使用)
         function getBudgetForCategoryRange(startDate, endDate, parentCat, subCat = null) {
             let total = 0;
             let d = new Date(startDate);
@@ -1742,9 +1704,23 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             }
         }
 
-        // ==========================================
-        // 7. Gemini LLM 服務 (支援多模型自動降級與 Fallback)
-        // ==========================================
+        async function fetchWithRetry(url, options, maxRetries = 5) {
+            let delay = 1000;
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (response.ok) {
+                        return await response.json();
+                    }
+                } catch (error) {
+                    if (i === maxRetries - 1) throw error;
+                }
+                await new Promise(resolve => setTimeout(resolve, delay));
+                delay *= 2;
+            }
+            throw new Error("連線至 AI 失敗，請重試。");
+        }
+
         async function callGemini(systemPrompt, userPrompt, jsonSchema = null, base64Image = null, mimeType = null) {
             const activeKey = systemSettings.geminiApiKey || "";
             
@@ -1752,12 +1728,11 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                 throw new Error("請先至設定頁面填入 Gemini API 金鑰！");
             }
 
-            // 🌟 核心升級：使用者指定的模型自動降級順序 (Fallback sequence)
-            // 將依序嘗試，若遇額度耗盡 (429)、模型不支援圖片 (400) 或模型不存在 (404)，會自動無縫切換下一個
+            // 🌟 核心設計：多模型自動降級 (Fallback Sequence)
             const modelsToTry = [
-                'gemini-2.5-flash-lite', // 優先嘗試：輕量且免費額度最高
-                'gemma-4-31b-it',        // 次優選：嘗試使用 Gemma 模型
-                'gemini-2.5-flash'       // 最終保底：功能最完整、支援多模態的 Flash 模型
+                'gemini-2.5-flash-lite', // 優先輕量
+                'gemma-4-31b-it',        // 次優
+                'gemini-2.5-flash'       // 保底
             ];
 
             const parts = [];
@@ -1793,8 +1768,13 @@ function handleBiDirectionalSync(spreadsheet, localData) {
 
             let lastError = null;
 
-            // 依序嘗試呼叫模型陣列
             for (const modelName of modelsToTry) {
+                // 如果是圖片模式，自動跳過不支援多模態的文字專屬模型
+                if (base64Image && modelName === 'gemma-4-31b-it') {
+                    console.log(`⏩ 圖片模式跳過純文字模型: ${modelName}`);
+                    continue;
+                }
+
                 const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${activeKey}`;
                 
                 try {
@@ -1808,7 +1788,6 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                         const errData = await response.json();
                         console.warn(`⚠️ 模型 ${modelName} 呼叫失敗，準備切換下一個...`, errData);
                         lastError = new Error(errData.error?.message || `HTTP 錯誤碼 ${response.status}`);
-                        // 遇到錯誤 (如超出免費額度、或純文字模型無法處理圖片)，直接 continue 換下一個保底模型
                         continue; 
                     }
                 } catch (error) {
@@ -1818,15 +1797,195 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                 }
             }
 
-            // 如果全部陣列中的模型都失敗，才拋出最終錯誤給前端 UI
             throw new Error(`所有 AI 模型皆嘗試失敗 (可能是額度皆已耗盡或網路異常)。\n最後錯誤: ${lastError.message}`);
         }
 
-        // ==========================================
-        // 8. 雙向智慧差異同步核心與優先權決策邏輯
-        // ==========================================
-        // 9. AI 快速記帳與分析 (支援語音與影像)
-        // ==========================================
+        async function sendToGoogleSheet(action, payloadData) {
+            const url = systemSettings.googleScriptUrl;
+            const password = systemSettings.googleScriptPassword;
+            if (!url) return null;
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: action,
+                        password: password,
+                        data: payloadData
+                    })
+                });
+                
+                if (response.ok) {
+                    const resJson = await response.json();
+                    if (resJson.status === "success") return resJson;
+                    throw new Error(resJson.message);
+                }
+                throw new Error("雲端伺服器連線中斷");
+            } catch (err) {
+                showToast(`❌ 同步中斷: ${err.message}`, "error");
+                return null;
+            }
+        }
+
+        function handleSyncButtonClick() {
+            if (!systemSettings.googleScriptUrl) {
+                showToast("❌ 請先在設定中配置 Google Apps Script 網址！", "error");
+                return;
+            }
+
+            const lastSyncTime = parseInt(localStorage.getItem('ok_last_sync_time'), 10) || 0;
+            if (lastSyncTime === 0) {
+                document.getElementById('first-sync-modal').classList.remove('hidden');
+            } else {
+                executeSync("smart");
+            }
+        }
+
+        function closeFirstSyncModal() {
+            document.getElementById('first-sync-modal').classList.add('hidden');
+        }
+
+        function startFirstSync(priority) {
+            closeFirstSyncModal();
+            executeSync(priority);
+        }
+
+        async function executeSync(priorityMode) {
+            showToast("⏳ 正在與雲端進行雙向差異比對與合併...", "info");
+
+            const lastSyncTime = parseInt(localStorage.getItem('ok_last_sync_time'), 10) || 0;
+
+            const localBudgetsList = [];
+            Object.keys(budgets).forEach(ym => {
+                Object.keys(budgets[ym]).forEach(key => {
+                    if (!key.includes(" > ")) return; 
+                    
+                    const item = budgets[ym][key];
+                    const parts = key.split(" > ");
+                    let keyType = 'expense';
+                    if (categoryMap.income[parts[0]] !== undefined) {
+                        keyType = 'income';
+                    }
+                    localBudgetsList.push({
+                        yearMonth: ym,
+                        type: keyType === 'expense' ? '支出' : '收入',
+                        parentCat: parts[0],
+                        subCat: parts[1],
+                        amount: item.amount,
+                        updatedAt: item.updatedAt || Date.now()
+                    });
+                });
+            });
+
+            transactions.forEach(t => { t.date = cleanDateToYMD(t.date); });
+
+            const payload = {
+                localTransactions: transactions,
+                localDeletedTx: deletedTxLog,
+                localBudgets: localBudgetsList,
+                localDeletedBudgets: deletedBudgetLog,
+                lastSyncTime: lastSyncTime,
+                priority: priorityMode
+            };
+
+            const response = await sendToGoogleSheet("syncBiDirectional", payload);
+            if (response && response.status === "success" && response.data) {
+                const cloudData = response.data;
+
+                if (cloudData.hasDuplicateBudget) {
+                    showToast("⚠️ 雲端偵測到重複預算項，已自動為您合併保留最新一筆！", "info");
+                }
+
+                transactions = cloudData.transactions || [];
+                transactions.forEach(t => { t.date = cleanDateToYMD(t.date); });
+                localStorage.setItem('ok_transactions', JSON.stringify(transactions));
+
+                const newBudgets = {};
+                (cloudData.budgets || []).forEach(b => {
+                    if (!newBudgets[b.yearMonth]) newBudgets[b.yearMonth] = {};
+                    if (b.subCat !== "（總計）") {
+                        newBudgets[b.yearMonth][`${b.parentCat} > ${b.subCat}`] = {
+                            amount: b.amount,
+                            updatedAt: b.updatedAt
+                        };
+                    }
+                });
+
+                Object.keys(newBudgets).forEach(ym => {
+                    const targetMonthMap = newBudgets[ym];
+                    ['expense', 'income'].forEach(type => {
+                        Object.keys(categoryMap[type] || {}).forEach(parentCat => {
+                            let sum = 0;
+                            const subs = categoryMap[type][parentCat] || [];
+                            subs.forEach(subCat => {
+                                sum += parseFloat(targetMonthMap[`${parentCat} > ${subCat}`]?.amount) || 0;
+                            });
+                            targetMonthMap[parentCat] = {
+                                amount: sum,
+                                updatedAt: Date.now() 
+                            };
+                        });
+                    });
+                });
+
+                budgets = newBudgets;
+                localStorage.setItem('ok_budgets', JSON.stringify(budgets));
+
+                deletedTxLog = [];
+                deletedBudgetLog = [];
+                localStorage.setItem('ok_deleted_tx_log', JSON.stringify([]));
+                localStorage.setItem('ok_deleted_budget_log', JSON.stringify([]));
+                
+                localStorage.setItem('ok_last_sync_time', Date.now().toString());
+
+                populateDynamicYearDropdowns();
+                initFilterOptions();
+                renderTransactionTable();
+                initBudgetInputs();
+                if (!document.getElementById('tab-dashboard').classList.contains('hidden')) renderDashboard();
+
+                showToast("🎉 雙向智慧差異同步完成！已成功對齊所有端點變更。", "success");
+                updateSyncStatusUI();
+            } else {
+                showToast("❌ 雙向同步失敗，請檢查設定與網路連線！", "error");
+            }
+        }
+
+        function saveSystemSettings() {
+            systemSettings.geminiApiKey = document.getElementById('cfg-gemini-key').value.trim();
+            systemSettings.googleScriptUrl = document.getElementById('cfg-gas-url').value.trim();
+            systemSettings.googleScriptPassword = document.getElementById('cfg-gas-password').value.trim();
+            systemSettings.autoSync = document.getElementById('cfg-auto-sync').checked;
+
+            localStorage.setItem('ok_settings', JSON.stringify(systemSettings));
+            showToast("💾 設定已儲存！", "success");
+            updateSyncStatusUI();
+        }
+
+        async function testGoogleSheetSync() {
+            const url = document.getElementById('cfg-gas-url').value.trim();
+            const password = document.getElementById('cfg-gas-password').value.trim();
+            if (!url || !password) {
+                showToast("❌ 請輸入連線設定！", "error");
+                return;
+            }
+            showToast("⏳ 正在驗證連線...", "info");
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    mode: 'cors',
+                    body: JSON.stringify({ action: "test", password: password })
+                });
+                const res = await response.json();
+                if (res.status === "success") showToast("🎉 雲端伺服器連線成功！", "success");
+                else showToast(`❌ 驗證失敗: ${res.message}`, "error");
+            } catch(e) {
+                showToast("❌ 伺服器無回應，請確認部署設定！", "error");
+            }
+        }
+
         function toggleInputMode(mode) {
             const btnManual = document.getElementById('btn-mode-manual');
             const btnAI = document.getElementById('btn-mode-ai');
@@ -2007,7 +2166,6 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             let importCount = 0;
             const selectedIndices = Array.from(checkboxes).map(c => parseInt(c.dataset.idx));
             
-            // 倒序匯入確保時間軸最新在最上方
             selectedIndices.sort((a,b) => b - a).forEach(idx => {
                 const tx = parsedAITransactions[idx];
                 transactions.unshift({
@@ -2042,9 +2200,6 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             updateSyncStatusUI();
         }
 
-        // ==========================================
-        // 10. 記帳與明細管理
-        // ==========================================
         function setFormType(type) {
             currentFormType = type;
             const expenseBtn = document.getElementById('tx-type-expense');
@@ -2355,9 +2510,6 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             });
         }
 
-        // ==========================================
-        // 11. 月度預算規劃 (獨立切換與進階複製)
-        // ==========================================
         function setBudgetTab(tab) {
             activeBudgetTab = tab;
             const expBtn = document.getElementById('btn-budget-tab-exp');
@@ -2416,14 +2568,12 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             expContainer.innerHTML = '';
             incContainer.innerHTML = '';
 
-            // 取得上個月字串
-            let dObj = new Date(parseInt(curY, 10), parseInt(curM, 10) - 2, 1); // JS月份 0-11
+            let dObj = new Date(parseInt(curY, 10), parseInt(curM, 10) - 2, 1);
             let prevYM = `${dObj.getFullYear()}-${(dObj.getMonth() + 1).toString().padStart(2, '0')}`;
 
             const prevMonthBudgets = budgets[prevYM] || {};
             const targetMonthBudgets = budgets[currentBudgetPeriod] || {};
 
-            // 產生「支出預算樹狀圖」
             Object.keys(categoryMap.expense).forEach(parentCat => {
                 const groupDiv = document.createElement('div');
                 groupDiv.className = "border border-slate-200 rounded-xl overflow-hidden mb-3 bg-slate-50/50 shadow-sm";
@@ -2493,7 +2643,6 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                 expContainer.appendChild(groupDiv);
             });
 
-            // 產生「收入目標樹狀圖」
             Object.keys(categoryMap.income).forEach(parentCat => {
                 const groupDiv = document.createElement('div');
                 groupDiv.className = "border border-slate-200 rounded-xl overflow-hidden mb-3 bg-slate-50/50 shadow-sm";
@@ -2568,7 +2717,6 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             updateSaveBudgetButtonState();
         }
 
-        // === 進階預算複製功能 ===
         function openAdvBudgetCopyModal() {
             const srcYearSel = document.getElementById('adv-copy-src-year');
             const srcMonthSel = document.getElementById('adv-copy-src-month');
@@ -2580,9 +2728,8 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                 srcYearSel.innerHTML += `<option value="${y}">${y} 年</option>`;
             }
             
-            // 預設來源為目前的上一年
-            let [curY, curM] = currentBudgetPeriod.split('-');
-            srcYearSel.value = (parseInt(curY) - 1).toString();
+            let [curY] = currentBudgetPeriod.split('-');
+            srcYearSel.value = (parseInt(curY, 10) - 1).toString();
             
             document.getElementById('adv-budget-copy-modal').classList.remove('hidden');
             setTimeout(() => document.getElementById('adv-budget-copy-box').classList.remove('scale-95'), 10);
@@ -2607,7 +2754,7 @@ function handleBiDirectionalSync(spreadsheet, localData) {
         function executeAdvBudgetCopy() {
             const srcY = document.getElementById('adv-copy-src-year').value;
             const srcM = document.getElementById('adv-copy-src-month').value;
-            let [curY, curM] = currentBudgetPeriod.split('-');
+            let [curY] = currentBudgetPeriod.split('-');
             
             let copyCount = 0;
             
@@ -2618,7 +2765,7 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                     let targetYM = `${curY}-${mStr}`;
                     
                     if (budgets[sourceYM]) {
-                        budgets[targetYM] = JSON.parse(JSON.stringify(budgets[sourceYM])); // deep copy
+                        budgets[targetYM] = JSON.parse(JSON.stringify(budgets[sourceYM]));
                         Object.keys(budgets[targetYM]).forEach(k => {
                             budgets[targetYM][k].updatedAt = Date.now();
                         });
@@ -2784,9 +2931,6 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             }
         }
 
-        // ==========================================
-        // 12. 儀表板與圖表整合
-        // ==========================================
         function getMonthlyFinancials(yearMonth) {
             let totalIncome = 0;
             let totalExpense = 0;
@@ -2944,7 +3088,7 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                             color: '#e11d48',
                             anchor: 'end',
                             align: 'top',
-                            font: { weight: 'black', size: 10 }
+                            font: { weight: 'bold', size: 10 }
                         }
                     }
                 }
@@ -3032,9 +3176,6 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             });
         }
 
-        // ==========================================
-        // 13. 財務報表、PDF 輸出
-        // ==========================================
         function initReportConfig() {
             const y = todayDateObj.getFullYear();
             const m = todayDateObj.getMonth() + 1;
@@ -3141,7 +3282,6 @@ function handleBiDirectionalSync(spreadsheet, localData) {
         }
 
         function renderReportCharts(actuals, startDate, endDate) {
-            // 1. 支出圓餅
             const expLabels = [];
             const expValues = [];
             Object.keys(categoryMap.expense).forEach(cat => {
@@ -3185,7 +3325,6 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                 }
             });
 
-            // 2. 收入圓餅
             const incLabels = [];
             const incValues = [];
             Object.keys(categoryMap.income).forEach(cat => {
@@ -3229,7 +3368,6 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                 }
             });
 
-            // 3. 支出對照直條圖
             const expCompareLabels = Object.keys(categoryMap.expense);
             expCompareLabels.sort((a,b) => (actuals[b] || 0) - (actuals[a] || 0));
             const barExpLabels = expCompareLabels.slice(0, 5);
@@ -3275,7 +3413,6 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                 }
             });
 
-            // 4. 收入目標對照直條圖
             const incCompareLabels = Object.keys(categoryMap.income);
             incCompareLabels.sort((a,b) => (actuals[b] || 0) - (actuals[a] || 0));
             const barIncLabels = incCompareLabels.slice(0, 5);
@@ -3435,9 +3572,6 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             });
         }
 
-        // ==========================================
-        // 14. 輔助函數與模態視窗
-        // ==========================================
         function showToast(message, type = "success") {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
