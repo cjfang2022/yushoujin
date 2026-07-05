@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-    <title>御守金 - 階層式家庭記帳、分年預算與雲端雙向同步系統</title>
+    <title>御守金 - 階層式家庭記帳、月度預算與雲端雙向同步系統</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chart.js -->
@@ -36,14 +36,12 @@
             -moz-appearance: textfield;
         }
 
-        /* 專門用於解決 PDF 匯出時圖表和表格跨頁切斷問題的 CSS */
+        /* PDF 匯出排版專用 */
         .pdf-section {
             page-break-inside: avoid !important;
             break-inside: avoid !important;
             margin-bottom: 24px;
         }
-        
-        /* 強制 PDF 匯出時維持左右並排的高解析排版 */
         @media print {
             .pdf-grid-force {
                 display: grid !important;
@@ -61,25 +59,19 @@
     <!-- 頂部導覽列 -->
     <header class="bg-emerald-700 text-white shadow-md sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col md:flex-row justify-between items-center gap-3">
-            <div class="flex items-center space-x-3">
+            <div class="flex items-center space-x-3 w-full md:w-auto justify-center md:justify-start">
                 <div class="bg-white text-emerald-700 p-2 rounded-lg font-bold text-xl shadow-inner">
                     💰
                 </div>
                 <div>
                     <h1 class="font-bold text-lg md:text-xl tracking-wider">御守金</h1>
-                    <p class="text-xs text-emerald-100 hidden md:block">階層式家庭記帳、分年預算與雲端備份系統</p>
+                    <p class="text-xs text-emerald-100 hidden md:block">階層式家庭記帳、月度預算與雲端備份系統</p>
                 </div>
             </div>
-            <div class="flex flex-wrap items-center justify-center md:justify-end gap-2 text-sm">
+            <div class="flex items-center justify-center text-sm">
                 <span id="current-date-badge" class="bg-emerald-800 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap">
                     系統時間: 載入中...
                 </span>
-                <button onclick="openConfirmModal('restore')" class="bg-emerald-600 hover:bg-emerald-500 transition px-3 py-1.5 rounded-lg text-xs font-semibold shadow whitespace-nowrap">
-                    還原示範資料
-                </button>
-                <button onclick="openConfirmModal('clear')" class="bg-rose-600 hover:bg-rose-500 transition px-3 py-1.5 rounded-lg text-xs font-semibold shadow whitespace-nowrap">
-                    清空本機紀錄
-                </button>
             </div>
         </div>
     </header>
@@ -194,33 +186,31 @@
             </div>
 
             <!-- 🌟 頂端共用雲端資料同步看板 (雙向智慧差異同步) 🌟 -->
-            <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
-                <div class="flex flex-col md:flex-row items-start md:items-center gap-3 w-full md:w-auto">
-                    <div class="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl text-xl shrink-0">
+            <div class="bg-white p-3 md:p-4 rounded-2xl border border-slate-100 shadow-sm mb-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div class="flex flex-row items-center gap-3 w-full sm:w-auto">
+                    <div class="p-2 md:p-2.5 bg-indigo-50 text-indigo-600 rounded-xl text-lg md:text-xl shrink-0">
                         🔄
                     </div>
-                    <div>
+                    <div class="min-w-0 flex-1">
                         <h4 class="text-xs font-extrabold text-slate-800 flex items-center gap-1.5">
-                            <span>雲端資料雙向智慧同步看板</span>
-                            <span class="text-[10px] font-medium text-slate-400 hidden sm:inline">自動修復防呆與多端衝突合併 (LWW 演算法)</span>
+                            <span>雲端智慧雙向同步</span>
+                            <span class="text-[10px] font-medium text-slate-400 hidden lg:inline">自動修復防呆與多端衝突合併</span>
                         </h4>
                         <!-- 待同步數據狀態看板 -->
-                        <div class="flex flex-wrap items-center gap-2 mt-1">
+                        <div class="flex flex-wrap items-center gap-1.5 mt-1">
                             <span id="sync-tx-status-badge" class="inline-flex items-center text-[10px] bg-slate-100 px-2 py-0.5 rounded-md font-semibold text-slate-600 border border-slate-200">
-                                實際收支: 計算中...
+                                收支: 計算中...
                             </span>
                             <span id="sync-bg-status-badge" class="inline-flex items-center text-[10px] bg-slate-100 px-2 py-0.5 rounded-md font-semibold text-slate-600 border border-slate-200">
-                                年度預算: 計算中...
+                                預算: 計算中...
                             </span>
                         </div>
                     </div>
                 </div>
                 <!-- 同步操作按鈕區 -->
-                <div class="flex flex-wrap items-center gap-2 w-full md:w-auto shrink-0 justify-end">
-                    <button onclick="handleSyncButtonClick()" class="w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-indigo-600 hover:from-emerald-700 hover:to-indigo-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition text-center shadow-lg flex items-center justify-center space-x-2">
-                        <span>⚡ 開始雙向智慧同步</span>
-                    </button>
-                </div>
+                <button onclick="handleSyncButtonClick()" class="w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-indigo-600 hover:from-emerald-700 hover:to-indigo-700 text-white font-bold text-xs px-4 md:px-5 py-2 md:py-2.5 rounded-xl transition text-center shadow flex items-center justify-center space-x-1.5 shrink-0">
+                    <span>⚡ 開始同步</span>
+                </button>
             </div>
 
             <!-- TAB 1: 儀表板 -->
@@ -272,8 +262,8 @@
                     <!-- 預算與實際對比圖 -->
                     <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col">
                         <h3 class="font-bold text-slate-700 mb-4 flex items-center justify-between">
-                            <span>📊 預算與實際支出對比</span>
-                            <span id="dash-compare-subtitle" class="text-xs font-normal text-slate-400">顯示大類支出與預算相對差額</span>
+                            <span>📊 當月預算與實際支出對比</span>
+                            <span id="dash-compare-subtitle" class="text-xs font-normal text-slate-400">顯示當月大類相對差額</span>
                         </h3>
                         <div class="relative flex-1 flex items-center justify-center min-h-[300px]">
                             <canvas id="budgetCompareChart"></canvas>
@@ -285,7 +275,7 @@
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <!-- 預算狀態警戒 -->
                     <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 lg:col-span-1">
-                        <h3 class="font-bold text-slate-700 mb-4">⚠️ 預算狀態警戒區</h3>
+                        <h3 class="font-bold text-slate-700 mb-4">⚠️ 當月預算狀態警戒區</h3>
                         <div id="dashboard-budget-alerts" class="space-y-3 max-h-[350px] overflow-y-auto no-scrollbar">
                             <!-- JS 動態生成 -->
                             <p class="text-sm text-slate-400">目前預算狀態良好，無超支項目！</p>
@@ -298,12 +288,13 @@
                             <button onclick="switchTab('transactions')" class="text-emerald-600 hover:text-emerald-700 text-xs font-semibold">查看全部 ➔</button>
                         </div>
                         <div class="overflow-x-auto flex-1">
-                            <table class="w-full text-left text-sm">
+                            <table class="w-full text-left text-sm whitespace-nowrap">
                                 <thead>
                                     <tr class="text-slate-400 border-b border-slate-100">
                                         <th class="py-2">日期</th>
-                                        <th class="py-2">大類 &gt; 細項</th>
+                                        <th class="py-2">分類</th>
                                         <th class="py-2">備註</th>
+                                        <th class="py-2">方式</th>
                                         <th class="py-2 text-right">金額</th>
                                     </tr>
                                 </thead>
@@ -369,22 +360,31 @@
                                     </div>
                                 </div>
 
-                                <!-- 金額與日期 -->
+                                <!-- 金額與支付方式 -->
                                 <div class="grid grid-cols-2 gap-2">
                                     <div>
                                         <label class="block text-xs font-semibold text-slate-500 mb-1">金額 (NTD)</label>
                                         <input type="number" id="tx-amount" step="any" placeholder="金額" required class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500" inputmode="decimal">
                                     </div>
                                     <div>
-                                        <label class="block text-xs font-semibold text-slate-500 mb-1">記帳日期</label>
-                                        <input type="date" id="tx-date" required class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                        <label class="block text-xs font-semibold text-slate-500 mb-1">支付方式</label>
+                                        <select id="tx-pay-method" required class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                            <option value="現金">現金支付</option>
+                                            <option value="信用卡">信用卡</option>
+                                        </select>
                                     </div>
                                 </div>
 
-                                <!-- 備註 -->
-                                <div>
-                                    <label class="block text-xs font-semibold text-slate-500 mb-1">備註說明</label>
-                                    <input type="text" id="tx-note" placeholder="例如：好市多補貨、午餐..." class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                <!-- 日期與備註 -->
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                    <div class="md:col-span-1">
+                                        <label class="block text-xs font-semibold text-slate-500 mb-1">記帳日期</label>
+                                        <input type="date" id="tx-date" required class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                    </div>
+                                    <div class="md:col-span-1">
+                                        <label class="block text-xs font-semibold text-slate-500 mb-1">備註說明</label>
+                                        <input type="text" id="tx-note" placeholder="例如：好市多補貨..." class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                    </div>
                                 </div>
 
                                 <div class="flex space-x-2 pt-2">
@@ -403,12 +403,12 @@
                             <h3 class="font-bold text-slate-800 text-base flex items-center space-x-2">
                                 <span>🤖 AI 語意記帳</span>
                             </h3>
-                            <p class="text-xs text-slate-400 leading-relaxed">可以直接輸入一段日常口語、消費對話或發票明細，AI 將自動進行多筆解析與自動歸入大類與細項！</p>
+                            <p class="text-xs text-slate-400 leading-relaxed">可以直接輸入一段日常口語、消費對話，AI 會自動為您歸類並填入適當的支付方式與明細！</p>
                             
                             <div class="space-y-3">
                                 <textarea id="ai-raw-text" rows="5" placeholder="例如：
-7/2 中午跟同事去吃外食聚餐，我出了$450元。
-另外順便用悠遊卡儲值了500元，下午去全聯幫寶寶買了日用品花1200元..." class="w-full bg-slate-50 border border-slate-200 text-xs rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-slate-300 leading-relaxed"></textarea>
+7/2 中午跟同事去吃外食聚餐，我付了現金$450元。
+下午去全聯刷卡幫寶寶買了日用品花1200元..." class="w-full bg-slate-50 border border-slate-200 text-xs rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-slate-300 leading-relaxed"></textarea>
                                 
                                 <button onclick="processAITextInput()" id="btn-ai-analyze" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-xl text-xs font-bold transition shadow flex items-center justify-center space-x-1.5">
                                     <span>✨ 語意分析此段描述</span>
@@ -471,6 +471,7 @@
                                         <th onclick="sortTable('type')" class="py-3 px-4 hover:text-indigo-600 transition-colors">類型 <span id="sort-icon-type"></span></th>
                                         <th onclick="sortTable('parentCat')" class="py-3 px-4 hover:text-indigo-600 transition-colors">大類 <span id="sort-icon-parentCat"></span></th>
                                         <th onclick="sortTable('subCat')" class="py-3 px-4 hover:text-indigo-600 transition-colors">細項 <span id="sort-icon-subCat"></span></th>
+                                        <th onclick="sortTable('payMethod')" class="py-3 px-4 hover:text-indigo-600 transition-colors">支付方式 <span id="sort-icon-payMethod"></span></th>
                                         <th onclick="sortTable('note')" class="py-3 px-4 hover:text-indigo-600 transition-colors">備註 <span id="sort-icon-note"></span></th>
                                         <th onclick="sortTable('amount')" class="py-3 px-4 text-right hover:text-indigo-600 transition-colors">金額 <span id="sort-icon-amount"></span></th>
                                         <th class="py-3 px-4 text-center">操作</th>
@@ -488,33 +489,31 @@
                 </div>
             </section>
 
-            <!-- TAB 3: 預算管理 (優化樹狀階層、智慧細項編列與大類自動加總) -->
+            <!-- TAB 3: 月度預算管理 -->
             <section id="tab-budget" class="space-y-6 tab-content hidden">
                 <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
                     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
                         <div>
                             <h2 class="font-bold text-slate-800 text-xl flex items-center space-x-2">
-                                <span>🎯 樹狀家庭預算規劃</span>
+                                <span>🎯 月度家庭預算規劃</span>
                             </h2>
                         </div>
                         
-                        <!-- 預算設定控制區 (加入前後年快速切換) -->
+                        <!-- 預算設定控制區 (改為月度選擇) -->
                         <div class="flex flex-wrap items-center gap-2 self-start md:self-auto">
-                            <!-- 預算年份選擇 (動態無限年份 + 快速切換) -->
+                            <!-- 月份選擇 -->
                             <div class="flex items-center space-x-1.5 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
-                                <button onclick="navigateBudgetYear(-1)" class="w-7 h-7 flex items-center justify-center bg-white hover:bg-slate-50 border border-slate-200 text-xs font-bold rounded-lg shadow-sm transition active:scale-95" title="前一年">◀</button>
-                                <select id="budget-year-select" onchange="handleBudgetYearChange()" class="bg-transparent text-sm font-black text-slate-700 focus:outline-none px-2 py-0.5">
-                                    <!-- JS 動態生成 -->
-                                </select>
-                                <button onclick="navigateBudgetYear(1)" class="w-7 h-7 flex items-center justify-center bg-white hover:bg-slate-50 border border-slate-200 text-xs font-bold rounded-lg shadow-sm transition active:scale-95" title="後一年">▶</button>
+                                <button onclick="navigateBudgetMonth(-1)" class="w-7 h-7 flex items-center justify-center bg-white hover:bg-slate-50 border border-slate-200 text-xs font-bold rounded-lg shadow-sm transition active:scale-95" title="上個月">◀</button>
+                                <input type="month" id="budget-month-select" onchange="handleBudgetMonthChange()" class="bg-transparent text-sm font-black text-slate-700 focus:outline-none px-2 py-0.5 cursor-pointer">
+                                <button onclick="navigateBudgetMonth(1)" class="w-7 h-7 flex items-center justify-center bg-white hover:bg-slate-50 border border-slate-200 text-xs font-bold rounded-lg shadow-sm transition active:scale-95" title="下個月">▶</button>
                             </div>
-                            <!-- 複製前年預算按鈕 -->
-                            <button type="button" onclick="copyPreviousYearBudget()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold px-3 py-1.5 rounded-xl transition flex items-center space-x-1 shadow-sm">
-                                <span>📋 複製前年預算</span>
+                            <!-- 複製上月預算按鈕 -->
+                            <button type="button" onclick="copyPreviousMonthBudget()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold px-3 py-1.5 rounded-xl transition flex items-center space-x-1 shadow-sm whitespace-nowrap">
+                                <span>📋 複製上月預算</span>
                             </button>
-                            <!-- 清除今年資料按鈕 -->
-                            <button type="button" onclick="openConfirmModal('clear-current-budget')" class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold px-3 py-1.5 rounded-xl transition flex items-center space-x-1 shadow-sm">
-                                <span>🗑️ 清除今年資料</span>
+                            <!-- 清除當月資料按鈕 -->
+                            <button type="button" onclick="openConfirmModal('clear-current-budget')" class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold px-3 py-1.5 rounded-xl transition flex items-center space-x-1 shadow-sm whitespace-nowrap">
+                                <span>🗑️ 清除當月</span>
                             </button>
                         </div>
                     </div>
@@ -522,55 +521,44 @@
                     <!-- 預算自動合計狀態看板 -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100 mb-6">
                         <div class="flex items-center justify-between p-2.5 bg-white/80 rounded-xl shadow-sm">
-                            <span class="text-xs font-bold text-slate-600">📈 年度總支出預算累計：</span>
+                            <span class="text-xs font-bold text-slate-600">📈 當月總支出預算累計：</span>
                             <span id="budget-total-expense" class="text-base font-black text-rose-600">NT$ 0</span>
                         </div>
                         <div class="flex items-center justify-between p-2.5 bg-white/80 rounded-xl shadow-sm">
-                            <span class="text-xs font-bold text-slate-600">💵 年度總收入目標累計：</span>
+                            <span class="text-xs font-bold text-slate-600">💵 當月總收入目標累計：</span>
                             <span id="budget-total-income" class="text-base font-black text-emerald-600">NT$ 0</span>
                         </div>
                     </div>
 
+                    <!-- 切換頁籤 -->
+                    <div class="grid grid-cols-2 gap-1 bg-slate-100 p-1 rounded-xl mb-4 max-w-sm mx-auto">
+                        <button onclick="setBudgetTab('expense')" id="btn-budget-tab-exp" class="py-2 rounded-lg font-bold text-sm transition bg-white text-rose-600 shadow-sm">
+                            📉 支出預算
+                        </button>
+                        <button onclick="setBudgetTab('income')" id="btn-budget-tab-inc" class="py-2 rounded-lg font-bold text-sm transition text-slate-600 hover:text-slate-800">
+                            📈 收入目標
+                        </button>
+                    </div>
+
                     <!-- 預算對照欄位說明 -->
-                    <div class="hidden lg:flex justify-between items-center px-4 mb-4 text-xs font-semibold text-slate-400">
-                        <div class="w-1/2 flex justify-between pr-8 border-r border-slate-200">
-                            <span>支出大類 / 細項名稱</span>
-                            <div class="flex space-x-12">
-                                <span>前年預算</span>
-                                <span class="pr-6">目標預算額度</span>
-                            </div>
-                        </div>
-                        <div class="w-1/2 flex justify-between pl-8">
-                            <span>收入大類 / 細項名稱</span>
-                            <div class="flex space-x-12">
-                                <span>前年目標</span>
-                                <span class="pr-6">目標收入額度</span>
-                            </div>
+                    <div class="hidden md:flex justify-between items-center px-4 mb-3 text-[11px] font-semibold text-slate-400 border-b border-slate-100 pb-2">
+                        <span>分類項目名稱</span>
+                        <div class="flex space-x-8 lg:space-x-16 pr-2">
+                            <span>上月編列額度</span>
+                            <span class="pr-2">本月設定額度</span>
                         </div>
                     </div>
 
                     <!-- 預算設定區 -->
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div>
                         <!-- 支出類別預算 -->
-                        <div class="space-y-4">
-                            <h3 class="font-bold text-rose-600 border-b pb-2 flex items-center justify-between text-sm">
-                                <span>📉 支出大類與細項預算</span>
-                                <span class="text-xs text-slate-400 font-normal">點擊箭頭展開編列</span>
-                            </h3>
-                            <div id="expense-budgets-inputs" class="space-y-3 max-h-[500px] overflow-y-auto pr-2 no-scrollbar">
-                                <!-- JS 動態生成樹狀摺疊 inputs -->
-                            </div>
+                        <div id="budget-section-expense" class="space-y-3 max-h-[500px] overflow-y-auto pr-2 no-scrollbar">
+                            <!-- JS 動態生成樹狀摺疊 inputs -->
                         </div>
 
                         <!-- 收入類別預算目標 -->
-                        <div class="space-y-4">
-                            <h3 class="font-bold text-emerald-600 border-b pb-2 flex items-center justify-between text-sm">
-                                <span>📈 收入大類與細項目標</span>
-                                <span class="text-xs text-slate-400 font-normal">點擊箭頭展開編列</span>
-                            </h3>
-                            <div id="income-budgets-inputs" class="space-y-3 max-h-[500px] overflow-y-auto pr-2 no-scrollbar">
-                                <!-- JS 動態生成樹狀摺疊 inputs -->
-                            </div>
+                        <div id="budget-section-income" class="hidden space-y-3 max-h-[500px] overflow-y-auto pr-2 no-scrollbar">
+                            <!-- JS 動態生成樹狀摺疊 inputs -->
                         </div>
                     </div>
 
@@ -688,7 +676,7 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pdf-grid-force pdf-section">
                             <div class="border border-slate-100 p-4 rounded-xl flex flex-col items-center bg-white shadow-sm min-h-[280px] justify-center">
                                 <h4 class="text-[11px] font-extrabold text-slate-600 mb-2 flex items-center space-x-1.5">
-                                    <span>📊 預算與實際支出對比</span>
+                                    <span>📊 區間預算與實際支出對比</span>
                                 </h4>
                                 <div class="w-full h-56 relative flex items-center justify-center">
                                     <canvas id="reportBarChart"></canvas>
@@ -696,7 +684,7 @@
                             </div>
                             <div class="border border-slate-100 p-4 rounded-xl flex flex-col items-center bg-white shadow-sm min-h-[280px] justify-center">
                                 <h4 class="text-[11px] font-extrabold text-slate-600 mb-2 flex items-center space-x-1.5">
-                                    <span>📈 預算與實際收入對比</span>
+                                    <span>📈 區間目標與實際收入對比</span>
                                 </h4>
                                 <div class="w-full h-56 relative flex items-center justify-center">
                                     <canvas id="reportIncomeBarChart"></canvas>
@@ -707,14 +695,14 @@
 
                     <!-- 3. 各大類收支預算明細對照表 -->
                     <div class="space-y-4 pdf-section">
-                        <h2 class="text-xs md:text-sm font-bold text-slate-800 border-l-4 border-emerald-600 pl-2">三、 各類預算與目標達成率明細</h2>
+                        <h2 class="text-xs md:text-sm font-bold text-slate-800 border-l-4 border-emerald-600 pl-2">三、 各類區間預算目標達成率明細</h2>
                         <div class="overflow-x-auto">
                             <table class="w-full text-left text-xs md:text-sm border-collapse">
                                 <thead>
                                     <tr class="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
                                         <th class="py-3 px-4">大類名稱</th>
                                         <th class="py-3 px-4">類型</th>
-                                        <th class="py-3 px-4 text-right">預算金額</th>
+                                        <th class="py-3 px-4 text-right">區間合計預算</th>
                                         <th class="py-3 px-4 text-right">實際金額</th>
                                         <th class="py-3 px-4 text-right">差異 / 達成率</th>
                                         <th class="py-3 px-4 text-center">狀態說明</th>
@@ -828,6 +816,27 @@
                                 <span class="text-[10px] text-slate-400 mt-1 block">留空則不啟用，若填入將在部署時安全地供您個人網頁調用。</span>
                             </div>
                             
+                            <!-- 教學：如何取得 Gemini API 金鑰 -->
+                            <details class="bg-blue-50/70 border border-blue-100 rounded-xl p-3 text-xs text-slate-600 cursor-pointer group">
+                                <summary class="font-bold text-blue-900 flex items-center justify-between outline-none select-none list-none">
+                                    <span class="flex items-center space-x-1">
+                                        <span>🤖 如何免費取得 Gemini API 金鑰？</span>
+                                    </span>
+                                    <span class="transition-transform duration-200 group-open:rotate-180 text-[10px]">▼</span>
+                                </summary>
+                                <div class="mt-3 space-y-2 cursor-default" onclick="event.stopPropagation()">
+                                    <ol class="list-decimal list-inside space-y-1.5 text-[11px] text-slate-600 leading-relaxed">
+                                        <li>前往 <a href="https://aistudio.google.com/" target="_blank" class="text-blue-600 hover:underline font-bold">Google AI Studio</a> 並登入您的 Google 帳號。</li>
+                                        <li>點擊左側選單的 <b>"Get API key"</b>。</li>
+                                        <li>點選 <b>"Create API key"</b> 按鈕，並選擇建立在新的或現有的 Google Cloud 專案中。</li>
+                                        <li>複製產生的字串，貼回上方的輸入框並點擊下方儲存即可！</li>
+                                        <li><span class="text-slate-400">註：我們已將核心模型升級為最新的 gemini-2.5-flash，反應更快速聰明且免費額度充足。</span></li>
+                                    </ol>
+                                </div>
+                            </details>
+                            
+                            <hr class="border-slate-200">
+
                             <div>
                                 <label class="block text-xs font-bold text-slate-600 mb-1">Google Apps Script Web App 網址：</label>
                                 <input type="text" id="cfg-gas-url" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-white border border-slate-200 text-xs rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono">
@@ -837,14 +846,14 @@
                             <details class="bg-indigo-50/70 border border-indigo-100 rounded-xl p-3 text-xs text-slate-600 cursor-pointer group">
                                 <summary class="font-bold text-indigo-950 flex items-center justify-between outline-none select-none list-none">
                                     <span class="flex items-center space-x-1">
-                                        <span class="text-rose-600 animate-pulse mr-1">🔥重要升級</span>
-                                        <span>💡 如何建立並綁定 Google Apps Script 雲端同步？</span>
+                                        <span class="text-rose-600 animate-pulse mr-1">🔥架構大升級</span>
+                                        <span>💡 如何建立 Google Apps Script 雲端同步？</span>
                                     </span>
                                     <span class="transition-transform duration-200 group-open:rotate-180 text-[10px]">▼</span>
                                 </summary>
                                 <div class="mt-3 space-y-3 cursor-default" onclick="event.stopPropagation()">
                                     <div class="bg-amber-50 border border-amber-200 p-2 rounded text-[10px] text-amber-800 leading-relaxed font-bold">
-                                        ⚠️ 注意：為解決「必須手動清空時間才能同步」的問題，我們加入了自動防呆機制 (onEdit)。<br>
+                                        ⚠️ 注意：為支援「新增支付方式」與「月度預算」架構，資料庫欄位已變更。<br>
                                         若您使用舊版，請務必重新複製下方代碼貼回 GAS，並<span class="text-rose-600 underline">部署為新版本</span>！
                                     </div>
                                     <ol class="list-decimal list-inside space-y-1 text-[11px] text-slate-600 leading-relaxed">
@@ -854,10 +863,9 @@
                                     </ol>
                                     
                                     <div class="relative mt-2">
-                                        <textarea id="gas-code-box" readonly class="w-full h-40 bg-slate-900 text-slate-100 font-mono text-[10px] p-2.5 rounded-lg focus:outline-none leading-relaxed select-all" title="點選框內 Ctrl+A 即可全選複製">// Google Apps Script 雙向智慧差異同步代碼 (導入 onEdit 自動時間戳與防呆機制)
+                                        <textarea id="gas-code-box" readonly class="w-full h-40 bg-slate-900 text-slate-100 font-mono text-[10px] p-2.5 rounded-lg focus:outline-none leading-relaxed select-all" title="點選框內 Ctrl+A 即可全選複製">// Google Apps Script 雙向智慧差異同步代碼 (支援支付方式與月度預算)
 const ACCESS_PASSWORD = "請設定您的密碼"; 
 
-// 🎯 自動觸發器：只要在 Google Sheets 上手動打字修改，就自動更新「修改時間」並配發 ID！
 function onEdit(e) {
   if (!e || !e.range) return;
   const sheet = e.source.getActiveSheet();
@@ -865,13 +873,12 @@ function onEdit(e) {
   if (sheetName !== "Transactions" && sheetName !== "Budgets") return;
   
   const row = e.range.getRow();
-  if (row <= 1) return; // 標題行不處理
+  if (row <= 1) return;
   
-  // 自動更新修改時間 (Transactions: col 8, Budgets: col 6)
-  const timestampCol = sheetName === "Transactions" ? 8 : 6;
+  // Transactions 是 9 欄(修改時間在第 9 欄)，Budgets 是 6 欄
+  const timestampCol = sheetName === "Transactions" ? 9 : 6;
   sheet.getRange(row, timestampCol).setValue(Date.now());
   
-  // Transactions 自動產生專屬雲端 ID (col 1)
   if (sheetName === "Transactions") {
     const idCell = sheet.getRange(row, 1);
     if (!idCell.getValue()) {
@@ -893,42 +900,33 @@ function doPost(e) {
     
     ensureSheetsCreated(spreadsheet);
     
-    if (action === "test") {
-      return responseJSON({ status: "success", message: "連線成功！" + spreadsheet.getName() });
-    }
-    
-    if (action === "syncBiDirectional") {
-      const result = handleBiDirectionalSync(spreadsheet, data);
-      return responseJSON({ status: "success", data: result });
-    }
-
+    if (action === "test") return responseJSON({ status: "success", message: "連線成功！" + spreadsheet.getName() });
+    if (action === "syncBiDirectional") return responseJSON({ status: "success", data: handleBiDirectionalSync(spreadsheet, data) });
     if (action === "clearAll") {
       clearAllData(spreadsheet);
-      return responseJSON({ status: "success", message: "雲端試算表資料已成功全數清空！" });
+      return responseJSON({ status: "success", message: "資料已全數清空！" });
     }
-    
-    return responseJSON({ status: "error", message: "未知的 action 指令" });
+    return responseJSON({ status: "error", message: "未知的 action" });
   } catch (err) {
     return responseJSON({ status: "error", message: err.toString() });
   }
 }
 
 function responseJSON(obj) {
-  return ContentService.createTextOutput(JSON.stringify(obj))
-    .setMimeType(ContentService.MimeType.JSON);
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
 
 function ensureSheetsCreated(spreadsheet) {
   let txSheet = spreadsheet.getSheetByName("Transactions");
   if (!txSheet) {
     txSheet = spreadsheet.insertSheet("Transactions");
-    txSheet.appendRow(["ID", "日期", "類型", "大類", "細項", "金額", "備註", "修改時間"]);
-    txSheet.getRange(1, 1, 1, 8).setFontWeight("bold");
+    txSheet.appendRow(["ID", "日期", "類型", "大類", "細項", "金額", "支付方式", "備註", "修改時間"]);
+    txSheet.getRange(1, 1, 1, 9).setFontWeight("bold");
   }
   let bgSheet = spreadsheet.getSheetByName("Budgets");
   if (!bgSheet) {
     bgSheet = spreadsheet.insertSheet("Budgets");
-    bgSheet.appendRow(["年份", "類型", "大類", "細項", "預算金額", "修改時間"]);
+    bgSheet.appendRow(["年月", "類型", "大類", "細項", "預算金額", "修改時間"]);
     bgSheet.getRange(1, 1, 1, 6).setFontWeight("bold");
   }
 }
@@ -937,12 +935,12 @@ function clearAllData(spreadsheet) {
   let txSheet = spreadsheet.getSheetByName("Transactions");
   if (txSheet) {
     txSheet.clear();
-    txSheet.appendRow(["ID", "日期", "類型", "大類", "細項", "金額", "備註", "修改時間"]);
+    txSheet.appendRow(["ID", "日期", "類型", "大類", "細項", "金額", "支付方式", "備註", "修改時間"]);
   }
   let bgSheet = spreadsheet.getSheetByName("Budgets");
   if (bgSheet) {
     bgSheet.clear();
-    bgSheet.appendRow(["年份", "類型", "大類", "細項", "預算金額", "修改時間"]);
+    bgSheet.appendRow(["年月", "類型", "大類", "細項", "預算金額", "修改時間"]);
   }
 }
 
@@ -955,17 +953,7 @@ function formatToYMD(val) {
   }
   if (typeof val === 'string') {
     var match = val.match(/(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
-    if (match) {
-      return match[1] + "-" + ("0" + match[2]).slice(-2) + "-" + ("0" + match[3]).slice(-2);
-    }
-    var parsed = Date.parse(val);
-    if (!isNaN(parsed)) {
-      var dObj = new Date(parsed);
-      var y = dObj.getFullYear();
-      var m = ("0" + (dObj.getMonth() + 1)).slice(-2);
-      var d = ("0" + dObj.getDate()).slice(-2);
-      return y + "-" + m + "-" + d;
-    }
+    if (match) return match[1] + "-" + ("0" + match[2]).slice(-2) + "-" + ("0" + match[3]).slice(-2);
   }
   return val ? val.toString().trim() : "";
 }
@@ -973,29 +961,21 @@ function formatToYMD(val) {
 function handleBiDirectionalSync(spreadsheet, localData) {
   const txSheet = spreadsheet.getSheetByName("Transactions");
   const bgSheet = spreadsheet.getSheetByName("Budgets");
-  
   const lastSyncTime = localData.lastSyncTime || 0;
   const priority = localData.priority || "smart";
   
-  // ------------------------------------------
-  // 1. 處理記帳明細 (Transactions)
-  // ------------------------------------------
+  // 1. Transactions
   const cloudTxRows = txSheet.getDataRange().getValues();
   const cloudTxList = [];
-  
   for (let i = 1; i < cloudTxRows.length; i++) {
     const row = cloudTxRows[i];
     let id = row[0] ? row[0].toString().trim() : "";
-    if (!id && row[1]) {
-      // 處理直接貼上雲端且沒觸發 onEdit 的極端情況
-      id = "tx-cloud-" + Date.now() + "-" + i; 
-    }
+    if (!id && row[1]) id = "tx-cloud-" + Date.now() + "-" + i; 
     if (!id) continue;
     
-    let updTime = parseInt(row[7], 10);
-    if (isNaN(updTime) || !updTime) {
-      updTime = Date.now();
-    }
+    let updTime = parseInt(row[8], 10);
+    if (isNaN(updTime) || !updTime) updTime = Date.now();
+    
     cloudTxList.push({
       id: id,
       date: formatToYMD(row[1]),
@@ -1003,66 +983,48 @@ function handleBiDirectionalSync(spreadsheet, localData) {
       parentCat: row[3].toString().trim(),
       subCat: row[4].toString().trim(),
       amount: parseFloat(row[5]) || 0,
-      note: row[6].toString().trim(),
+      payMethod: row[6] ? row[6].toString().trim() : '現金',
+      note: row[7] ? row[7].toString().trim() : '',
       updatedAt: updTime
     });
   }
 
   const localTxList = localData.localTransactions || [];
   const localDelTx = localData.localDeletedTx || [];
-  const localTxMap = {};
-  localTxList.forEach(t => { localTxMap[t.id] = t; });
-  const localDelTxMap = {};
-  localDelTx.forEach(d => { localDelTxMap[d.id] = d.updatedAt; });
-  const cloudTxMap = {};
-  cloudTxList.forEach(c => { cloudTxMap[c.id] = c; });
-  
+  const localTxMap = {}; localTxList.forEach(t => { localTxMap[t.id] = t; });
+  const localDelTxMap = {}; localDelTx.forEach(d => { localDelTxMap[d.id] = d.updatedAt; });
+  const cloudTxMap = {}; cloudTxList.forEach(c => { cloudTxMap[c.id] = c; });
   let finalTxList = [];
   
-  if (priority === "local") {
-    finalTxList = localTxList;
-  } else if (priority === "cloud") {
-    finalTxList = cloudTxList;
-  } else {
+  if (priority === "local") finalTxList = localTxList;
+  else if (priority === "cloud") finalTxList = cloudTxList;
+  else {
     const allTxIds = new Set([...Object.keys(localTxMap), ...Object.keys(cloudTxMap), ...Object.keys(localDelTxMap)]);
     allTxIds.forEach(id => {
-      const l = localTxMap[id];
-      const c = cloudTxMap[id];
-      const isDelLocally = localDelTxMap[id] !== undefined;
-      
-      if (l && c) {
-        if (l.updatedAt >= c.updatedAt) finalTxList.push(l);
-        else finalTxList.push(c);
-      } else if (l && !c) {
-        if (!isDelLocally && !(l.updatedAt < lastSyncTime && lastSyncTime > 0)) {
-          finalTxList.push(l);
-        }
-      } else if (!l && c) {
-        if (isDelLocally) {
-          if (localDelTxMap[id] < c.updatedAt) finalTxList.push(c);
-        } else {
-          if (!(c.updatedAt < lastSyncTime && lastSyncTime > 0)) finalTxList.push(c);
-        }
+      const l = localTxMap[id]; const c = cloudTxMap[id]; const isDelLocally = localDelTxMap[id] !== undefined;
+      if (l && c) finalTxList.push(l.updatedAt >= c.updatedAt ? l : c);
+      else if (l && !c) { if (!isDelLocally && !(l.updatedAt < lastSyncTime && lastSyncTime > 0)) finalTxList.push(l); }
+      else if (!l && c) {
+        if (isDelLocally) { if (localDelTxMap[id] < c.updatedAt) finalTxList.push(c); }
+        else { if (!(c.updatedAt < lastSyncTime && lastSyncTime > 0)) finalTxList.push(c); }
       }
     });
   }
   
   txSheet.clear();
-  txSheet.appendRow(["ID", "日期", "類型", "大類", "細項", "金額", "備註", "修改時間"]);
-  txSheet.getRange(1, 1, 1, 8).setFontWeight("bold");
+  txSheet.appendRow(["ID", "日期", "類型", "大類", "細項", "金額", "支付方式", "備註", "修改時間"]);
+  txSheet.getRange(1, 1, 1, 9).setFontWeight("bold");
   finalTxList.sort((a,b) => b.date.localeCompare(a.date));
-  var writeTxRows = finalTxList.map(t => [t.id, formatToYMD(t.date), t.type, t.parentCat, t.subCat, t.amount, t.note, t.updatedAt]);
+  var writeTxRows = finalTxList.map(t => [t.id, formatToYMD(t.date), t.type, t.parentCat, t.subCat, t.amount, t.payMethod || '現金', t.note, t.updatedAt]);
   
   if (writeTxRows.length > 0) {
-    txSheet.getRange(2, 1, writeTxRows.length, 8).setValues(writeTxRows);
+    txSheet.getRange(2, 1, writeTxRows.length, 9).setValues(writeTxRows);
     txSheet.getRange(2, 2, writeTxRows.length, 1).setNumberFormat("yyyy-mm-dd");
     txSheet.getRange(2, 6, writeTxRows.length, 1).setNumberFormat("#,##0");
-    txSheet.getRange(2, 8, writeTxRows.length, 1).setNumberFormat("0");
+    txSheet.getRange(2, 9, writeTxRows.length, 1).setNumberFormat("0");
   }
   
-  // ------------------------------------------
-  // 2. 處理年度預算 (Budgets) - 重複項目防呆與總計過濾
-  // ------------------------------------------
+  // 2. Budgets
   const cloudBgRows = bgSheet.getDataRange().getValues();
   const cloudBgList = [];
   const cloudBgCheckMap = {};
@@ -1071,27 +1033,20 @@ function handleBiDirectionalSync(spreadsheet, localData) {
   for (let i = 1; i < cloudBgRows.length; i++) {
     const row = cloudBgRows[i];
     if (!row[0]) continue;
-    
-    const yr = row[0].toString().trim();
+    const ym = row[0].toString().trim();
     const type = row[1].toString().trim();
     const parent = row[2].toString().trim();
     const sub = row[3].toString().trim();
-    
-    // 雲端現存的舊版（總計）會在此被強制過濾捨棄
     if (sub === "（總計）") continue;
     
-    const key = yr + "_" + type + "_" + parent + "_" + sub;
+    const key = ym + "_" + type + "_" + parent + "_" + sub;
     let updTime = parseInt(row[5], 10);
     if (isNaN(updTime) || !updTime) updTime = Date.now();
     
-    const item = { year: yr, type: type, parentCat: parent, subCat: sub, amount: parseFloat(row[4]) || 0, updatedAt: updTime };
-    
-    // 智慧防呆：若年份大類細項完全重複，自動保留時間較新的一筆
+    const item = { yearMonth: ym, type: type, parentCat: parent, subCat: sub, amount: parseFloat(row[4]) || 0, updatedAt: updTime };
     if (cloudBgCheckMap[key]) {
         hasDuplicateBudget = true;
-        if (item.updatedAt > cloudBgCheckMap[key].updatedAt) {
-            Object.assign(cloudBgCheckMap[key], item);
-        }
+        if (item.updatedAt > cloudBgCheckMap[key].updatedAt) Object.assign(cloudBgCheckMap[key], item);
     } else {
         cloudBgCheckMap[key] = item;
         cloudBgList.push(cloudBgCheckMap[key]);
@@ -1100,45 +1055,30 @@ function handleBiDirectionalSync(spreadsheet, localData) {
   
   const localBgList = localData.localBudgets || [];
   const localDelBg = localData.localDeletedBudgets || [];
-  const localBgMap = {};
-  localBgList.forEach(b => { localBgMap[b.year + "_" + b.type + "_" + b.parentCat + "_" + b.subCat] = b; });
-  const localDelBgMap = {};
-  localDelBg.forEach(d => { localDelBgMap[d.year + "_" + d.type + "_" + d.parentCat + "_" + d.subCat] = d.updatedAt; });
-  const cloudBgMap = {};
-  cloudBgList.forEach(c => { cloudBgMap[c.year + "_" + c.type + "_" + c.parentCat + "_" + c.subCat] = c; });
+  const localBgMap = {}; localBgList.forEach(b => { localBgMap[b.yearMonth + "_" + b.type + "_" + b.parentCat + "_" + b.subCat] = b; });
+  const localDelBgMap = {}; localDelBg.forEach(d => { localDelBgMap[d.yearMonth + "_" + d.type + "_" + d.parentCat + "_" + d.subCat] = d.updatedAt; });
+  const cloudBgMap = {}; cloudBgList.forEach(c => { cloudBgMap[c.yearMonth + "_" + c.type + "_" + c.parentCat + "_" + c.subCat] = c; });
   
   let finalBgList = [];
-  
-  if (priority === "local") {
-    finalBgList = localBgList;
-  } else if (priority === "cloud") {
-    finalBgList = cloudBgList;
-  } else {
+  if (priority === "local") finalBgList = localBgList;
+  else if (priority === "cloud") finalBgList = cloudBgList;
+  else {
     const allBgKeys = new Set([...Object.keys(localBgMap), ...Object.keys(cloudBgMap), ...Object.keys(localDelBgMap)]);
     allBgKeys.forEach(key => {
-      const l = localBgMap[key];
-      const c = cloudBgMap[key];
-      const isDelLocally = localDelBgMap[key] !== undefined;
-      
-      if (l && c) {
-        if (l.updatedAt >= c.updatedAt) finalBgList.push(l);
-        else finalBgList.push(c);
-      } else if (l && !c) {
-        if (!isDelLocally && !(l.updatedAt < lastSyncTime && lastSyncTime > 0)) finalBgList.push(l);
-      } else if (!l && c) {
-        if (isDelLocally) {
-          if (localDelBgMap[key] < c.updatedAt) finalBgList.push(c);
-        } else {
-          if (!(c.updatedAt < lastSyncTime && lastSyncTime > 0)) finalBgList.push(c);
-        }
+      const l = localBgMap[key]; const c = cloudBgMap[key]; const isDelLocally = localDelBgMap[key] !== undefined;
+      if (l && c) finalBgList.push(l.updatedAt >= c.updatedAt ? l : c);
+      else if (l && !c) { if (!isDelLocally && !(l.updatedAt < lastSyncTime && lastSyncTime > 0)) finalBgList.push(l); }
+      else if (!l && c) {
+        if (isDelLocally) { if (localDelBgMap[key] < c.updatedAt) finalBgList.push(c); }
+        else { if (!(c.updatedAt < lastSyncTime && lastSyncTime > 0)) finalBgList.push(c); }
       }
     });
   }
   
   bgSheet.clear();
-  bgSheet.appendRow(["年份", "類型", "大類", "細項", "預算金額", "修改時間"]);
+  bgSheet.appendRow(["年月", "類型", "大類", "細項", "預算金額", "修改時間"]);
   bgSheet.getRange(1, 1, 1, 6).setFontWeight("bold");
-  var writeBgRows = finalBgList.map(b => [b.year, b.type, b.parentCat, b.subCat, b.amount, b.updatedAt]);
+  var writeBgRows = finalBgList.map(b => [b.yearMonth, b.type, b.parentCat, b.subCat, b.amount, b.updatedAt]);
   
   if (writeBgRows.length > 0) {
     bgSheet.getRange(2, 1, writeBgRows.length, 6).setValues(writeBgRows);
@@ -1196,7 +1136,7 @@ function handleBiDirectionalSync(spreadsheet, localData) {
     <!-- 頁尾 -->
     <footer class="bg-slate-800 text-slate-400 py-6 border-t border-slate-700 mt-auto text-xs text-center">
         <p>© 2026 御守金 - 階層式家庭記帳與預算控制工具 · 專為聰明理財家庭設計</p>
-        <p class="mt-1 text-slate-500">使用 HTML5 / Tailwind CSS / Chart.js / html2pdf.js 與 Gemini 2.5 LLM 智慧核心技術構建</p>
+        <p class="mt-1 text-slate-500">使用 HTML5 / Tailwind CSS / Chart.js / html2pdf.js 與 Gemini AI 核心技術構建</p>
     </footer>
 
     <script>
@@ -1224,68 +1164,18 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             }
         };
 
-        const currentYearNum = new Date().getFullYear(); // 2026
-        let currentBudgetYear = currentYearNum.toString();
-
-        // 預設子項預算架構
-        const PRESET_BUDGETS = {};
-        const yearsArray = [(currentYearNum - 1).toString(), currentYearNum.toString(), (currentYearNum + 1).toString()];
-        
-        yearsArray.forEach(yr => {
-            PRESET_BUDGETS[yr] = {
-                "餐飲飲食 > 伙食": 8000, "餐飲飲食 > 外食": 4000,
-                "日常生活 > 日用品": 2000, "日常生活 > 3C產品": 1500, "日常生活 > 家電": 1000, "日常生活 > 雜費": 1500,
-                "交通出行 > 汽機車油錢": 1500, "交通出行 > 智慧卡儲值": 1000, "交通出行 > 大眾運輸": 500,
-                "育兒教育 > 保母費/學費": 12000, "育兒教育 > 嬰幼兒日用品": 3000,
-                "休閒娛樂 > 健身運動": 1000, "休閒娛樂 > 休閒娛樂": 1500, "休閒娛樂 > 國內旅遊": 2500,
-                "居家住宅 > 水": 500, "居家住宅 > 電": 2500, "居家住宅 > 瓦斯": 1000, "居家住宅 > 房屋租金": 14000,
-                "醫療保險 > 健保醫療": 1000, "醫療保險 > 人壽保險": 3000,
-                "家庭孝親 > 孝親費": 10000,
-                "稅務規費 > 綜所稅": 5000,
-                "公務代墊 > 公務代墊": 2000,
-                "工作薪資 > 薪資": 70000, "工作薪資 > 加班費": 5000,
-                "獎助福利 > 國旅卡補助": 8000,
-                "投資理財 > 租金收入": 5000,
-                "其他收入 > 現金回饋": 2000
-            };
-            calculateAndFillParentTotals(PRESET_BUDGETS[yr]);
-        });
-
-        function calculateAndFillParentTotals(targetYearMap) {
-            ['expense', 'income'].forEach(type => {
-                Object.keys(CATEGORY_MAP[type]).forEach(parentCat => {
-                    let sum = 0;
-                    CATEGORY_MAP[type][parentCat].forEach(subCat => {
-                        sum += parseFloat(targetYearMap[`${parentCat} > ${subCat}`]) || 0;
-                    });
-                    targetYearMap[parentCat] = sum;
-                });
-            });
-        }
-
-        const MOCK_TRANSACTIONS = [
-            { id: "mock-1", date: "2026-06-05", type: "income", parentCat: "工作薪資", subCat: "薪資", amount: 72000, note: "公司上月份月薪", updatedAt: Date.now() },
-            { id: "mock-2", date: "2026-06-10", type: "expense", parentCat: "居家住宅", subCat: "房屋租金", amount: 16000, note: "房租轉帳", updatedAt: Date.now() },
-            { id: "mock-3", date: "2026-06-15", type: "expense", parentCat: "餐飲飲食", subCat: "伙食", amount: 4500, note: "全聯大採購食品", updatedAt: Date.now() },
-            { id: "mock-4", date: "2026-06-25", type: "expense", parentCat: "育兒教育", subCat: "保母費/學費", amount: 12000, note: "雙寶保母月退費", updatedAt: Date.now() },
-            { id: "mock-5", date: "2026-07-01", type: "income", parentCat: "工作薪資", subCat: "薪資", amount: 75000, note: "固定薪資匯入", updatedAt: Date.now() },
-            { id: "mock-6", date: "2026-07-01", type: "income", parentCat: "工作薪資", subCat: "加班費", amount: 5600, note: "上月專案加班補貼", updatedAt: Date.now() },
-            { id: "mock-7", date: "2026-07-01", type: "income", parentCat: "投資理財", subCat: "租金收入", amount: 12000, note: "套房租金入帳", updatedAt: Date.now() },
-            { id: "mock-8", date: "2026-07-01", type: "expense", parentCat: "居家住宅", subCat: "房屋租金", amount: 18000, note: "本月份房屋租金", updatedAt: Date.now() },
-            { id: "mock-9", date: "2026-07-01", type: "expense", parentCat: "居家住宅", subCat: "大樓管理費", amount: 2200, note: "大樓管理費", updatedAt: Date.now() },
-            { id: "mock-10", date: "2026-07-02", type: "expense", parentCat: "餐飲飲食", subCat: "外食", amount: 850, note: "全家晚餐鼎泰豐", updatedAt: Date.now() },
-            { id: "mock-11", date: "2026-07-02", type: "expense", parentCat: "交通出行", subCat: "汽機車油錢", amount: 1200, note: "汽車中油加油", updatedAt: Date.now() },
-            { id: "mock-12", date: "2026-07-03", type: "expense", parentCat: "日常生活", subCat: "日用品", amount: 1540, note: "好市多日用品衛生紙補貨", updatedAt: Date.now() },
-            { id: "mock-13", date: "2026-07-04", type: "expense", parentCat: "育兒教育", subCat: "保母費/學費", amount: 15000, note: "保母月薪費用", updatedAt: Date.now() },
-            { id: "mock-14", date: "2026-07-05", type: "expense", parentCat: "育兒教育", subCat: "嬰幼兒日用品", amount: 2850, note: "雙寶尿布與奶粉大採購", updatedAt: Date.now() },
-            { id: "mock-15", date: "2026-07-08", type: "expense", parentCat: "餐飲飲食", subCat: "伙食", amount: 3200, note: "菜市場蔬菜肉類補貨", updatedAt: Date.now() }
-        ];
+        const todayDateObj = new Date();
+        const currentYearNum = todayDateObj.getFullYear(); 
+        const currentMonthNum = todayDateObj.getMonth() + 1;
+        // 預設預算月度: YYYY-MM
+        let currentBudgetPeriod = `${currentYearNum}-${currentMonthNum.toString().padStart(2, '0')}`;
+        let activeBudgetTab = 'expense';
 
         // ==========================================
         // 2. 核心變數與狀態
         // ==========================================
         let transactions = [];
-        let budgets = {};
+        let budgets = {}; // 格式由 YYYY 改為 YYYY-MM
         let categoryMap = {}; 
         
         let currentFormType = 'expense';
@@ -1297,7 +1187,6 @@ function handleBiDirectionalSync(spreadsheet, localData) {
         let reportBarChartInstance = null;
         let reportIncomeBarChartInstance = null;
 
-        // 雙向同步刪除墓碑
         let deletedTxLog = []; 
         let deletedBudgetLog = []; 
         
@@ -1325,38 +1214,12 @@ function handleBiDirectionalSync(spreadsheet, localData) {
         // ==========================================
         function cleanDateToYMD(dateStr) {
             if (!dateStr) return "";
-            // 如果是完整的 ISO 或 Thu Jun 25 格式，進行解析
             const d = new Date(dateStr);
             if (isNaN(d.getTime())) return dateStr;
             const y = d.getFullYear();
             const m = (d.getMonth() + 1).toString().padStart(2, '0');
             const day = d.getDate().toString().padStart(2, '0');
             return `${y}-${m}-${day}`;
-        }
-
-        function alignMockDataDates(mockList) {
-            const today = new Date();
-            const targetYear = today.getFullYear();
-            const targetMonth = today.getMonth() + 1; 
-            
-            return mockList.map(t => {
-                const parts = t.date.split('-');
-                let y = parseInt(parts[0], 10);
-                let m = parseInt(parts[1], 10);
-                let d = parts[2];
-                
-                let diffInMonths = (y - 2026) * 12 + (m - 7);
-                
-                let newDate = new Date(targetYear, targetMonth - 1 + diffInMonths, parseInt(d, 10));
-                const ny = newDate.getFullYear();
-                const nm = (newDate.getMonth() + 1).toString().padStart(2, '0');
-                const nd = newDate.getDate().toString().padStart(2, '0');
-                
-                return {
-                    ...t,
-                    date: `${ny}-${nm}-${nd}`
-                };
-            });
         }
 
         // ==========================================
@@ -1367,59 +1230,42 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                 Chart.register(ChartDataLabels);
             }
 
-            const today = new Date();
-            const formattedDate = today.toLocaleDateString('zh-TW', {
+            const formattedDate = todayDateObj.toLocaleDateString('zh-TW', {
                 year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'long'
             });
             document.getElementById('current-date-badge').innerText = `系統日期: ${formattedDate}`;
 
             initCategoryMap();
 
-            // 載入記帳資料並清洗格式
             if (localStorage.getItem('ok_transactions')) {
                 transactions = JSON.parse(localStorage.getItem('ok_transactions'));
                 transactions.forEach(t => { 
                     if (!t.updatedAt) t.updatedAt = Date.now(); 
+                    if (!t.payMethod) t.payMethod = '現金'; // 舊資料預設補上
                     t.date = cleanDateToYMD(t.date);
                 });
             } else {
-                transactions = alignMockDataDates(MOCK_TRANSACTIONS);
+                transactions = [];
                 localStorage.setItem('ok_transactions', JSON.stringify(transactions));
             }
 
             deletedTxLog = JSON.parse(localStorage.getItem('ok_deleted_tx_log')) || [];
             deletedBudgetLog = JSON.parse(localStorage.getItem('ok_deleted_budget_log')) || [];
 
-            // 載入預算資料
             if (localStorage.getItem('ok_budgets')) {
                 budgets = JSON.parse(localStorage.getItem('ok_budgets'));
-                Object.keys(budgets).forEach(yr => {
-                    if (typeof budgets[yr] === 'object') {
-                        Object.keys(budgets[yr]).forEach(key => {
-                            if (typeof budgets[yr][key] === 'number') {
-                                budgets[yr][key] = {
-                                    amount: budgets[yr][key],
-                                    updatedAt: Date.now()
-                                };
-                            }
-                        });
+                // 自動轉移舊的年度預算 (YYYY) 到當前年份的1月 (YYYY-01) 避免資料流失
+                Object.keys(budgets).forEach(key => {
+                    if (key.length === 4) {
+                        budgets[`${key}-01`] = budgets[key];
+                        delete budgets[key];
                     }
                 });
             } else {
                 budgets = {};
-                Object.keys(PRESET_BUDGETS).forEach(yr => {
-                    budgets[yr] = {};
-                    Object.keys(PRESET_BUDGETS[yr]).forEach(key => {
-                        budgets[yr][key] = {
-                            amount: PRESET_BUDGETS[yr][key],
-                            updatedAt: Date.now()
-                        };
-                    });
-                });
                 localStorage.setItem('ok_budgets', JSON.stringify(budgets));
             }
 
-            // 載入系統金鑰
             if (localStorage.getItem('ok_settings')) {
                 systemSettings = JSON.parse(localStorage.getItem('ok_settings'));
                 document.getElementById('cfg-gemini-key').value = systemSettings.geminiApiKey || "";
@@ -1443,58 +1289,36 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             switchTab('dashboard');
         };
 
-        // 🚀 動態年份滾動生成器
+        // 🚀 動態年份滾動生成器 (記帳篩選用)
         function populateDynamicYearDropdowns() {
-            const budgetYearSelect = document.getElementById('budget-year-select');
-            if (!budgetYearSelect) return;
+            const filterYear = document.getElementById('filter-year');
+            if (!filterYear) return;
 
-            const startYear = currentYearNum - 5;
-            const endYear = currentYearNum + 10;
-            const yearsSet = new Set();
-            for (let y = startYear; y <= endYear; y++) {
-                yearsSet.add(y.toString());
-            }
-
-            Object.keys(budgets).forEach(yr => yearsSet.add(yr));
-            transactions.forEach(t => {
-                const yr = t.date.substring(0, 4);
-                if (yr) yearsSet.add(yr);
+            const years = [...new Set(transactions.map(t => t.date.substring(0, 4)))];
+            if(!years.includes(currentYearNum.toString())) years.push(currentYearNum.toString());
+            years.sort((a,b) => b.localeCompare(a));
+            
+            filterYear.innerHTML = '<option value="all">所有年份</option>';
+            years.forEach(y => {
+                filterYear.innerHTML += `<option value="${y}">${y} 年</option>`;
             });
-
-            const sortedYears = Array.from(yearsSet).sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
-            budgetYearSelect.innerHTML = '';
-            sortedYears.forEach(yr => {
-                const opt = document.createElement('option');
-                opt.value = yr;
-                opt.text = `${yr} 年`;
-                if (yr === currentBudgetYear) {
-                    opt.selected = true;
-                }
-                budgetYearSelect.appendChild(opt);
-            });
+            filterYear.value = currentYearNum.toString();
         }
 
-        // ◀ ▶ 前後年份快速切換按鈕
-        function navigateBudgetYear(direction) {
-            const select = document.getElementById('budget-year-select');
+        // ◀ ▶ 前後月度快速切換按鈕
+        function navigateBudgetMonth(direction) {
+            const select = document.getElementById('budget-month-select');
             if (!select) return;
             
-            let currentIndex = select.selectedIndex;
-            let newIndex = currentIndex + direction;
+            let [y, m] = currentBudgetPeriod.split('-');
+            let dateObj = new Date(parseInt(y, 10), parseInt(m, 10) - 1 + direction, 1);
             
-            if (newIndex >= 0 && newIndex < select.options.length) {
-                select.selectedIndex = newIndex;
-                currentBudgetYear = select.options[newIndex].value;
-                handleBudgetYearChange();
-            } else {
-                // 如果年份超出目前的下拉範圍，動態生一個新年份！
-                const curYear = parseInt(currentBudgetYear, 10);
-                const targetYear = curYear + direction;
-                currentBudgetYear = targetYear.toString();
-                
-                populateDynamicYearDropdowns();
-                handleBudgetYearChange();
-            }
+            let ny = dateObj.getFullYear();
+            let nm = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+            
+            currentBudgetPeriod = `${ny}-${nm}`;
+            select.value = currentBudgetPeriod;
+            handleBudgetMonthChange();
         }
 
         // ==========================================
@@ -1595,20 +1419,20 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                     }
                 });
 
-                Object.keys(budgets).forEach(year => {
-                    const yrBudg = budgets[year];
-                    if (yrBudg) {
-                        if (yrBudg[oldName] !== undefined) {
-                            yrBudg[newName] = yrBudg[oldName];
-                            yrBudg[newName].updatedAt = Date.now();
-                            delete yrBudg[oldName];
+                Object.keys(budgets).forEach(ym => {
+                    const ymBudg = budgets[ym];
+                    if (ymBudg) {
+                        if (ymBudg[oldName] !== undefined) {
+                            ymBudg[newName] = ymBudg[oldName];
+                            ymBudg[newName].updatedAt = Date.now();
+                            delete ymBudg[oldName];
                         }
-                        Object.keys(yrBudg).forEach(bKey => {
+                        Object.keys(ymBudg).forEach(bKey => {
                             if (bKey.startsWith(oldName + " > ")) {
                                 const newBKey = bKey.replace(oldName + " > ", newName + " > ");
-                                yrBudg[newBKey] = yrBudg[bKey];
-                                yrBudg[newBKey].updatedAt = Date.now();
-                                delete yrBudg[bKey];
+                                ymBudg[newBKey] = ymBudg[bKey];
+                                ymBudg[newBKey].updatedAt = Date.now();
+                                delete ymBudg[bKey];
                             }
                         });
                     }
@@ -1635,28 +1459,28 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             modal.classList.remove('hidden');
             icon.innerText = "⚠️";
             title.innerText = `確認刪除大類 「${parentName}」？`;
-            message.innerText = `這將一併刪除其下的細項！關聯的 ${count} 筆交易將失去大類，年度預算也將移除。`;
+            message.innerText = `這將一併刪除其下的細項！關聯的 ${count} 筆交易將失去大類，相關預算也將移除。`;
             btnAction.innerText = "確認刪除";
             btnAction.className = "flex-1 bg-rose-600 hover:bg-rose-700 text-white py-2.5 rounded-xl text-xs font-bold transition shadow-md";
 
             confirmActionCallback = () => {
                 const subs = categoryMap[activeMgrType][parentName] || [];
                 
-                Object.keys(budgets).forEach(year => {
-                    deletedBudgetLog.push({ year, type: activeMgrType === 'expense' ? '支出' : '收入', parentCat: parentName, subCat: "（總計）", updatedAt: Date.now() });
+                Object.keys(budgets).forEach(ym => {
+                    deletedBudgetLog.push({ yearMonth: ym, type: activeMgrType === 'expense' ? '支出' : '收入', parentCat: parentName, subCat: "（總計）", updatedAt: Date.now() });
                     subs.forEach(s => {
-                        deletedBudgetLog.push({ year, type: activeMgrType === 'expense' ? '支出' : '收入', parentCat: parentName, subCat: s, updatedAt: Date.now() });
+                        deletedBudgetLog.push({ yearMonth: ym, type: activeMgrType === 'expense' ? '支出' : '收入', parentCat: parentName, subCat: s, updatedAt: Date.now() });
                     });
                 });
                 
                 delete categoryMap[activeMgrType][parentName];
                 
-                Object.keys(budgets).forEach(year => {
-                    const yrBudg = budgets[year];
-                    if (yrBudg) {
-                        delete yrBudg[parentName];
+                Object.keys(budgets).forEach(ym => {
+                    const ymBudg = budgets[ym];
+                    if (ymBudg) {
+                        delete ymBudg[parentName];
                         subs.forEach(s => {
-                            delete yrBudg[`${parentName} > ${s}`];
+                            delete ymBudg[`${parentName} > ${s}`];
                         });
                     }
                 });
@@ -1721,14 +1545,14 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             if (!activeMgrParent) return;
             categoryMap[activeMgrType][activeMgrParent] = categoryMap[activeMgrType][activeMgrParent].filter(s => s !== subName);
             
-            Object.keys(budgets).forEach(year => {
-                deletedBudgetLog.push({ year, type: activeMgrType === 'expense' ? '支出' : '收入', parentCat: activeMgrParent, subCat: subName, updatedAt: Date.now() });
+            Object.keys(budgets).forEach(ym => {
+                deletedBudgetLog.push({ yearMonth: ym, type: activeMgrType === 'expense' ? '支出' : '收入', parentCat: activeMgrParent, subCat: subName, updatedAt: Date.now() });
             });
             
-            Object.keys(budgets).forEach(year => {
-                const yrBudg = budgets[year];
-                if (yrBudg) {
-                    delete yrBudg[`${activeMgrParent} > ${subName}`];
+            Object.keys(budgets).forEach(ym => {
+                const ymBudg = budgets[ym];
+                if (ymBudg) {
+                    delete ymBudg[`${activeMgrParent} > ${subName}`];
                 }
             });
 
@@ -1750,14 +1574,33 @@ function handleBiDirectionalSync(spreadsheet, localData) {
         // ==========================================
         // 6. 導覽與輔助
         // ==========================================
-        function getBudgetForCategory(year, parentCat, subCat = null) {
-            const yrBudgets = budgets[year];
-            if (!yrBudgets) return 0;
+        // 取得單一月份的預算
+        function getBudgetForCategory(yearMonth, parentCat, subCat = null) {
+            const ymBudgets = budgets[yearMonth];
+            if (!ymBudgets) return 0;
 
             if (subCat) {
-                return parseFloat(yrBudgets[`${parentCat} > ${subCat}`]?.amount) || 0;
+                return parseFloat(ymBudgets[`${parentCat} > ${subCat}`]?.amount) || 0;
             }
-            return parseFloat(yrBudgets[parentCat]?.amount) || 0;
+            return parseFloat(ymBudgets[parentCat]?.amount) || 0;
+        }
+
+        // 計算區間內所有月份預算總額 (報表使用)
+        function getBudgetForCategoryRange(startDate, endDate, parentCat, subCat = null) {
+            let total = 0;
+            let d = new Date(startDate);
+            let endD = new Date(endDate);
+            d.setDate(1); 
+            endD.setDate(1);
+
+            while (d <= endD) {
+                let y = d.getFullYear();
+                let m = (d.getMonth() + 1).toString().padStart(2, '0');
+                let ym = `${y}-${m}`;
+                total += getBudgetForCategory(ym, parentCat, subCat);
+                d.setMonth(d.getMonth() + 1);
+            }
+            return total;
         }
 
         function openPromptModal(title, defaultValue, callback) {
@@ -1836,10 +1679,11 @@ function handleBiDirectionalSync(spreadsheet, localData) {
 
         async function callGemini(systemPrompt, userPrompt, jsonSchema = null) {
             const activeKey = systemSettings.geminiApiKey || "";
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${activeKey}`;
+            // 升級至官方最新 Gemini 2.5 Flash 端點
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${activeKey}`;
             
             if (!activeKey) {
-                throw new Error("請先填入 Gemini API 金鑰才可使用此 AI 功能！");
+                throw new Error("請先至設定頁面填入 Gemini API 金鑰！");
             }
 
             const payload = {
@@ -1895,7 +1739,6 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             }
         }
 
-        // 核心同步按鈕點擊觸發
         function handleSyncButtonClick() {
             if (!systemSettings.googleScriptUrl) {
                 showToast("❌ 請先在設定中配置 Google Apps Script 網址！", "error");
@@ -1904,10 +1747,8 @@ function handleBiDirectionalSync(spreadsheet, localData) {
 
             const lastSyncTime = parseInt(localStorage.getItem('ok_last_sync_time'), 10) || 0;
             if (lastSyncTime === 0) {
-                // 首次同步 -> 打開決策彈窗選擇優先權！
                 document.getElementById('first-sync-modal').classList.remove('hidden');
             } else {
-                // 一般正常差異同步 -> 直接走智慧合併
                 executeSync("smart");
             }
         }
@@ -1921,27 +1762,24 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             executeSync(priority);
         }
 
-        // 正式執行雙向智慧同步
         async function executeSync(priorityMode) {
             showToast("⏳ 正在與雲端進行雙向差異比對與合併...", "info");
 
             const lastSyncTime = parseInt(localStorage.getItem('ok_last_sync_time'), 10) || 0;
 
-            // 整理本機 active 預算清單 (過濾掉總計，只上傳細項)
             const localBudgetsList = [];
-            Object.keys(budgets).forEach(yr => {
-                Object.keys(budgets[yr]).forEach(key => {
-                    // 🌟 重要變更：絕對不傳送（總計）到雲端，只保留有 " > " 的細項
+            Object.keys(budgets).forEach(ym => {
+                Object.keys(budgets[ym]).forEach(key => {
                     if (!key.includes(" > ")) return; 
                     
-                    const item = budgets[yr][key];
+                    const item = budgets[ym][key];
                     const parts = key.split(" > ");
                     let keyType = 'expense';
                     if (categoryMap.income[parts[0]] !== undefined) {
                         keyType = 'income';
                     }
                     localBudgetsList.push({
-                        year: yr,
+                        yearMonth: ym,
                         type: keyType === 'expense' ? '支出' : '收入',
                         parentCat: parts[0],
                         subCat: parts[1],
@@ -1951,10 +1789,7 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                 });
             });
 
-            // 清洗所有本地記帳日期的格式，防堵時區字串溢出
-            transactions.forEach(t => {
-                t.date = cleanDateToYMD(t.date);
-            });
+            transactions.forEach(t => { t.date = cleanDateToYMD(t.date); });
 
             const payload = {
                 localTransactions: transactions,
@@ -1969,44 +1804,37 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             if (response && response.status === "success" && response.data) {
                 const cloudData = response.data;
 
-                // 若在 GAS 雲端偵測到重複輸入的預算，跳出警告
                 if (cloudData.hasDuplicateBudget) {
                     showToast("⚠️ 雲端偵測到重複預算項，已自動為您合併保留最新一筆！", "info");
                 }
 
-                // 2. 更新本機交易
                 transactions = cloudData.transactions || [];
-                transactions.forEach(t => {
-                    t.date = cleanDateToYMD(t.date); // 確保從雲端下載下來的日期也完成清洗
-                });
+                transactions.forEach(t => { t.date = cleanDateToYMD(t.date); });
                 localStorage.setItem('ok_transactions', JSON.stringify(transactions));
 
-                // 3. 更新本機預算 (並重新計算大類總和)
                 const newBudgets = {};
                 (cloudData.budgets || []).forEach(b => {
-                    if (!newBudgets[b.year]) newBudgets[b.year] = {};
-                    // 雖然 GAS 已經過濾總計，這裡再加一層防護
+                    if (!newBudgets[b.yearMonth]) newBudgets[b.yearMonth] = {};
                     if (b.subCat !== "（總計）") {
-                        newBudgets[b.year][`${b.parentCat} > ${b.subCat}`] = {
+                        newBudgets[b.yearMonth][`${b.parentCat} > ${b.subCat}`] = {
                             amount: b.amount,
                             updatedAt: b.updatedAt
                         };
                     }
                 });
 
-                // 🌟 本機重新依據細項計算各大類的總計 (確保 UI 正確渲染)
-                Object.keys(newBudgets).forEach(yr => {
-                    const targetYearMap = newBudgets[yr];
+                Object.keys(newBudgets).forEach(ym => {
+                    const targetMonthMap = newBudgets[ym];
                     ['expense', 'income'].forEach(type => {
                         Object.keys(categoryMap[type] || {}).forEach(parentCat => {
                             let sum = 0;
                             const subs = categoryMap[type][parentCat] || [];
                             subs.forEach(subCat => {
-                                sum += parseFloat(targetYearMap[`${parentCat} > ${subCat}`]?.amount) || 0;
+                                sum += parseFloat(targetMonthMap[`${parentCat} > ${subCat}`]?.amount) || 0;
                             });
-                            targetYearMap[parentCat] = {
+                            targetMonthMap[parentCat] = {
                                 amount: sum,
-                                updatedAt: Date.now() // 總計時間隨本機重新計算更新
+                                updatedAt: Date.now() 
                             };
                         });
                     });
@@ -2015,16 +1843,13 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                 budgets = newBudgets;
                 localStorage.setItem('ok_budgets', JSON.stringify(budgets));
 
-                // 4. 重置清空本地已成功處理的墓碑日誌
                 deletedTxLog = [];
                 deletedBudgetLog = [];
                 localStorage.setItem('ok_deleted_tx_log', JSON.stringify([]));
                 localStorage.setItem('ok_deleted_budget_log', JSON.stringify([]));
                 
-                // 5. 紀錄成功同步時間
                 localStorage.setItem('ok_last_sync_time', Date.now().toString());
 
-                // 6. 全面重新繪製 UI
                 populateDynamicYearDropdowns();
                 initFilterOptions();
                 renderTransactionTable();
@@ -2123,10 +1948,11 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                                 type: { type: "STRING", enum: ["expense", "income"] },
                                 parentCat: { type: "STRING" },
                                 subCat: { type: "STRING" },
+                                payMethod: { type: "STRING", enum: ["現金", "信用卡"] },
                                 amount: { type: "INTEGER" },
                                 note: { type: "STRING" }
                             },
-                            required: ["date", "type", "parentCat", "subCat", "amount", "note"]
+                            required: ["date", "type", "parentCat", "subCat", "payMethod", "amount", "note"]
                         }
                     }
                 },
@@ -2167,13 +1993,15 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                 const absAmount = Math.abs(tx.amount);
                 const displaySymbol = isInc ? (tx.amount >= 0 ? '+' : '-') : (tx.amount >= 0 ? '-' : '+');
                 const amtColor = isInc ? (tx.amount >= 0 ? 'text-emerald-600' : 'text-rose-600') : (tx.amount >= 0 ? 'text-rose-600' : 'text-emerald-600');
-                
+                const methodBadge = tx.payMethod === '信用卡' ? `<span class="px-1 py-0.2 bg-blue-50 text-blue-700 rounded text-[10px]">💳 ${tx.payMethod}</span>` : `<span class="px-1 py-0.2 bg-amber-50 text-amber-700 rounded text-[10px]">💵 ${tx.payMethod}</span>`;
+
                 card.className = "p-2 bg-white rounded-lg border border-slate-100 flex items-center justify-between text-xs shadow-sm animate-fade-in";
                 card.innerHTML = `
                     <div class="space-y-0.5">
                         <div class="flex items-center space-x-1.5">
                             <span class="text-[10px] text-slate-400">${tx.date}</span>
                             <span class="px-1 py-0.2 rounded font-bold ${isInc ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}">${isInc ? '收入' : '支出'}</span>
+                            ${methodBadge}
                         </div>
                         <div class="font-bold text-slate-700">${tx.parentCat} &gt; ${tx.subCat}</div>
                         <div class="text-[10px] text-slate-400 truncate max-w-[150px]">${tx.note}</div>
@@ -2204,6 +2032,7 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                     type: tx.type,
                     parentCat: tx.parentCat,
                     subCat: tx.subCat,
+                    payMethod: tx.payMethod || '現金',
                     amount: tx.amount,
                     note: tx.note,
                     updatedAt: Date.now()
@@ -2290,6 +2119,7 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             const date = cleanDateToYMD(document.getElementById('tx-date').value);
             const parentCat = document.getElementById('tx-parent-cat').value;
             const subCat = document.getElementById('tx-sub-cat').value;
+            const payMethod = document.getElementById('tx-pay-method').value;
             const amount = parseInt(document.getElementById('tx-amount').value, 10);
             const note = document.getElementById('tx-note').value.trim();
 
@@ -2304,6 +2134,7 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                 type: currentFormType,
                 parentCat,
                 subCat,
+                payMethod,
                 amount,
                 note: note || `${subCat}消費`,
                 updatedAt: Date.now()
@@ -2320,6 +2151,8 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                 showToast("💵 新紀錄已入帳！", "success");
             }
 
+            localStorage.setItem(`ok_last_${currentFormType}_parent`, parentCat);
+            localStorage.setItem(`ok_last_${currentFormType}_sub_${parentCat}`, subCat);
             localStorage.setItem('ok_transactions', JSON.stringify(transactions));
             
             if (systemSettings.autoSync && systemSettings.googleScriptUrl) {
@@ -2336,9 +2169,9 @@ function handleBiDirectionalSync(spreadsheet, localData) {
         function resetForm() {
             document.getElementById('transaction-form').reset();
             document.getElementById('tx-id').value = '';
+            document.getElementById('tx-pay-method').value = '現金';
             
-            const today = new Date();
-            const todayStr = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+            const todayStr = `${todayDateObj.getFullYear()}-${(todayDateObj.getMonth() + 1).toString().padStart(2, '0')}-${todayDateObj.getDate().toString().padStart(2, '0')}`;
             document.getElementById('tx-date').value = todayStr;
             
             document.getElementById('form-title').innerHTML = "<span>✍️ 新增收支紀錄</span>";
@@ -2357,6 +2190,7 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             document.getElementById('tx-id').value = item.id;
             document.getElementById('tx-date').value = item.date;
             document.getElementById('tx-amount').value = item.amount;
+            document.getElementById('tx-pay-method').value = item.payMethod || '現金';
             document.getElementById('tx-note').value = item.note;
 
             setFormType(item.type);
@@ -2372,23 +2206,13 @@ function handleBiDirectionalSync(spreadsheet, localData) {
         }
 
         function initFilterOptions() {
-            const filterYear = document.getElementById('filter-year');
-            const years = [...new Set(transactions.map(t => t.date.substring(0, 4)))];
-            years.sort((a,b) => b.localeCompare(a));
-            filterYear.innerHTML = '<option value="all">所有年份</option>';
-            years.forEach(y => {
-                filterYear.innerHTML += `<option value="${y}">${y} 年</option>`;
-            });
-            
-            filterYear.value = currentYearNum.toString();
-
             const filterMonth = document.getElementById('filter-month');
             filterMonth.innerHTML = '<option value="all">所有月份</option>';
             for(let i=1; i<=12; i++){
                 const mStr = i.toString().padStart(2, '0');
                 filterMonth.innerHTML += `<option value="${mStr}">${i} 月</option>`;
             }
-            filterMonth.value = (new Date().getMonth() + 1).toString().padStart(2, '0');
+            filterMonth.value = currentMonthNum.toString().padStart(2, '0');
 
             handleTypeFilterChange();
         }
@@ -2508,12 +2332,14 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                     const absAmount = Math.abs(item.amount);
                     const displaySymbol = isInc ? (item.amount >= 0 ? '+' : '-') : (item.amount >= 0 ? '-' : '+');
                     const amtColor = isInc ? (item.amount >= 0 ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold') : (item.amount >= 0 ? 'text-rose-600 font-bold' : 'text-emerald-600 font-bold');
+                    const payMethodTxt = item.payMethod === '信用卡' ? '💳 信用卡' : '💵 現金';
 
                     tr.innerHTML = `
                         <td class="py-3 px-4 text-xs md:text-sm text-slate-500 font-medium">${item.date}</td>
                         <td class="py-3 px-4">${typeBadge}</td>
                         <td class="py-3 px-4 font-semibold text-slate-700">${item.parentCat}</td>
                         <td class="py-3 px-4 text-slate-500">${item.subCat}</td>
+                        <td class="py-3 px-4 text-slate-500 text-xs font-semibold">${payMethodTxt}</td>
                         <td class="py-3 px-4 text-xs md:text-sm text-slate-400 truncate max-w-[150px]" title="${item.note}">${item.note}</td>
                         <td class="py-3 px-4 text-right ${amtColor}">${displaySymbol}$${absAmount.toLocaleString()}</td>
                         <td class="py-3 px-4 text-center">
@@ -2529,7 +2355,7 @@ function handleBiDirectionalSync(spreadsheet, localData) {
         }
 
         function updateSortIcons() {
-            const fields = ['date', 'type', 'parentCat', 'subCat', 'note', 'amount'];
+            const fields = ['date', 'type', 'parentCat', 'subCat', 'note', 'amount', 'payMethod'];
             fields.forEach(f => {
                 const el = document.getElementById(`sort-icon-${f}`);
                 if (el) {
@@ -2544,23 +2370,52 @@ function handleBiDirectionalSync(spreadsheet, localData) {
         }
 
         // ==========================================
-        // 11. 預算規劃摺疊與彈性自適應排版 (大類與細項專用)
+        // 11. 月度預算規劃 (獨立切換與自動換行)
         // ==========================================
-        function handleBudgetYearChange() {
-            currentBudgetYear = document.getElementById('budget-year-select').value;
+        function setBudgetTab(tab) {
+            activeBudgetTab = tab;
+            const expBtn = document.getElementById('btn-budget-tab-exp');
+            const incBtn = document.getElementById('btn-budget-tab-inc');
+            const expSec = document.getElementById('budget-section-expense');
+            const incSec = document.getElementById('budget-section-income');
+
+            if (tab === 'expense') {
+                expBtn.className = "py-2 rounded-lg font-bold text-sm transition bg-white text-rose-600 shadow-sm";
+                incBtn.className = "py-2 rounded-lg font-bold text-sm transition text-slate-600 hover:text-slate-800";
+                expSec.classList.remove('hidden');
+                incSec.classList.add('hidden');
+            } else {
+                incBtn.className = "py-2 rounded-lg font-bold text-sm transition bg-white text-emerald-600 shadow-sm";
+                expBtn.className = "py-2 rounded-lg font-bold text-sm transition text-slate-600 hover:text-slate-800";
+                incSec.classList.remove('hidden');
+                expSec.classList.add('hidden');
+            }
+        }
+
+        function handleBudgetMonthChange() {
+            currentBudgetPeriod = document.getElementById('budget-month-select').value;
+            if(!currentBudgetPeriod) {
+                currentBudgetPeriod = `${currentYearNum}-${currentMonthNum.toString().padStart(2, '0')}`;
+                document.getElementById('budget-month-select').value = currentBudgetPeriod;
+            }
             initBudgetInputs();
         }
 
         function initBudgetInputs() {
-            const expContainer = document.getElementById('expense-budgets-inputs');
-            const incContainer = document.getElementById('income-budgets-inputs');
+            document.getElementById('budget-month-select').value = currentBudgetPeriod;
+            const expContainer = document.getElementById('budget-section-expense');
+            const incContainer = document.getElementById('budget-section-income');
 
             expContainer.innerHTML = '';
             incContainer.innerHTML = '';
 
-            const prevYear = (parseInt(currentBudgetYear, 10) - 1).toString();
-            const prevYearBudgets = budgets[prevYear] || {};
-            const targetYearBudgets = budgets[currentBudgetYear] || {};
+            // 取得上個月字串
+            let [y, m] = currentBudgetPeriod.split('-');
+            let dObj = new Date(parseInt(y, 10), parseInt(m, 10) - 2, 1); // JS月份 0-11
+            let prevYM = `${dObj.getFullYear()}-${(dObj.getMonth() + 1).toString().padStart(2, '0')}`;
+
+            const prevMonthBudgets = budgets[prevYM] || {};
+            const targetMonthBudgets = budgets[currentBudgetPeriod] || {};
 
             // 產生「支出預算樹狀圖」
             Object.keys(categoryMap.expense).forEach(parentCat => {
@@ -2575,8 +2430,8 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                 let parentCurrSum = 0;
                 
                 subs.forEach(sub => {
-                    parentPrevSum += parseFloat(prevYearBudgets[`${parentCat} > ${sub}`]?.amount) || 0;
-                    parentCurrSum += parseFloat(targetYearBudgets[`${parentCat} > ${sub}`]?.amount) || 0;
+                    parentPrevSum += parseFloat(prevMonthBudgets[`${parentCat} > ${sub}`]?.amount) || 0;
+                    parentCurrSum += parseFloat(targetMonthBudgets[`${parentCat} > ${sub}`]?.amount) || 0;
                 });
 
                 const headerRow = document.createElement('div');
@@ -2586,14 +2441,14 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                         <button type="button" onclick="toggleBudgetCollapse('${parentCat}')" class="text-sm text-slate-600 hover:text-indigo-600 font-bold p-1 shrink-0">
                             <span id="collapse-arrow-${parentCat}">${arrow}</span>
                         </button>
-                        <span class="font-extrabold text-slate-800 text-sm md:text-base truncate" title="${parentCat}">${parentCat}</span>
+                        <span class="font-extrabold text-slate-800 text-sm md:text-base whitespace-normal break-words leading-tight">${parentCat}</span>
                     </div>
                     <div class="flex items-center space-x-2 md:space-x-3 shrink-0 min-w-0">
-                        <div class="text-[11px] md:text-xs text-slate-700 bg-slate-200/80 px-2.5 py-1 rounded-md font-bold shrink-0 min-w-[85px] text-right" title="前年累計預算: $${parentPrevSum.toLocaleString()}">
-                            <span class="hidden md:inline">前年: </span>$${parentPrevSum.toLocaleString()}
+                        <div class="text-[11px] md:text-xs text-slate-700 bg-slate-200/80 px-2 py-1 rounded-md font-bold shrink-0 text-right" title="上月累計預算: $${parentPrevSum.toLocaleString()}">
+                            <span class="hidden md:inline">上月: </span>$${parentPrevSum.toLocaleString()}
                         </div>
-                        <div class="flex items-center space-x-1 bg-slate-200/50 border border-slate-300 rounded-lg px-2.5 py-1 w-28 sm:w-32 shrink-0 select-none">
-                            <span class="text-slate-600 text-[11px] md:text-xs shrink-0 font-bold select-none">🔒 NT$</span>
+                        <div class="flex items-center space-x-1 bg-slate-200/50 border border-slate-300 rounded-lg px-2 py-1 w-24 sm:w-28 shrink-0 select-none">
+                            <span class="text-slate-600 text-[10px] md:text-xs shrink-0 font-bold select-none">🔒 $</span>
                             <input type="text" id="budget-parent-${parentCat}" value="${parentCurrSum || 0}" readonly class="parent-budget-input w-full bg-transparent text-xs md:text-sm text-right font-extrabold text-slate-700 focus:outline-none">
                         </div>
                     </div>
@@ -2606,21 +2461,21 @@ function handleBiDirectionalSync(spreadsheet, localData) {
 
                 subs.forEach(subCat => {
                     const subKey = `${parentCat} > ${subCat}`;
-                    const subPrev = prevYearBudgets[subKey]?.amount || 0;
-                    const subCurr = targetYearBudgets[subKey]?.amount || '';
+                    const subPrev = prevMonthBudgets[subKey]?.amount || 0;
+                    const subCurr = targetMonthBudgets[subKey]?.amount || '';
 
                     const subRow = document.createElement('div');
                     subRow.className = "flex items-center justify-between gap-3 p-3 pl-8 hover:bg-slate-50";
                     subRow.innerHTML = `
-                        <div class="truncate flex-1 min-w-0" title="👉 ${subCat}">
-                            <p class="text-slate-800 font-bold text-xs md:text-sm truncate">👉 ${subCat}</p>
+                        <div class="flex-1 min-w-0 pr-2">
+                            <p class="text-slate-800 font-bold text-xs md:text-sm whitespace-normal break-words leading-tight text-slate-600">👉 ${subCat}</p>
                         </div>
                         <div class="flex items-center space-x-2 md:space-x-3 shrink-0 min-w-0">
-                            <div class="text-[11px] md:text-xs text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md font-bold shrink-0 min-w-[85px] text-right" title="前年: $${subPrev.toLocaleString()}">
-                                <span class="hidden md:inline">前年: </span>$${subPrev.toLocaleString()}
+                            <div class="text-[11px] md:text-xs text-slate-500 bg-slate-50 px-2 py-1 rounded-md font-bold shrink-0 text-right" title="上月: $${subPrev.toLocaleString()}">
+                                <span class="hidden md:inline">上月: </span>$${subPrev.toLocaleString()}
                             </div>
-                            <div class="flex items-center space-x-1 bg-white border border-slate-300 rounded-lg px-2.5 py-1 w-28 sm:w-32 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 shrink-0 shadow-sm">
-                                <span class="text-slate-500 text-[11px] md:text-xs font-bold select-none">NT$</span>
+                            <div class="flex items-center space-x-1 bg-white border border-slate-300 rounded-lg px-2 py-1 w-24 sm:w-28 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 shrink-0 shadow-sm">
+                                <span class="text-slate-400 text-[10px] md:text-xs font-bold select-none">$</span>
                                 <input type="number" data-parent="${parentCat}" data-subcat="${subCat}" oninput="handleSubBudgetInput('${parentCat}', 'expense')" value="${subCurr}" min="0" placeholder="0" class="sub-budget-input sub-budget-inputs-${parentCat} w-full bg-transparent text-xs md:text-sm text-right font-black text-slate-900 focus:outline-none" inputmode="decimal">
                             </div>
                         </div>
@@ -2645,8 +2500,8 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                 let parentCurrSum = 0;
                 
                 subs.forEach(sub => {
-                    parentPrevSum += parseFloat(prevYearBudgets[`${parentCat} > ${sub}`]?.amount) || 0;
-                    parentCurrSum += parseFloat(targetYearBudgets[`${parentCat} > ${sub}`]?.amount) || 0;
+                    parentPrevSum += parseFloat(prevMonthBudgets[`${parentCat} > ${sub}`]?.amount) || 0;
+                    parentCurrSum += parseFloat(targetMonthBudgets[`${parentCat} > ${sub}`]?.amount) || 0;
                 });
 
                 const headerRow = document.createElement('div');
@@ -2656,14 +2511,14 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                         <button type="button" onclick="toggleBudgetCollapse('${parentCat}')" class="text-sm text-slate-600 hover:text-indigo-600 font-bold p-1 shrink-0">
                             <span id="collapse-arrow-${parentCat}">${arrow}</span>
                         </button>
-                        <span class="font-extrabold text-slate-800 text-sm md:text-base truncate" title="${parentCat}">${parentCat}</span>
+                        <span class="font-extrabold text-slate-800 text-sm md:text-base whitespace-normal break-words leading-tight">${parentCat}</span>
                     </div>
                     <div class="flex items-center space-x-2 md:space-x-3 shrink-0 min-w-0">
-                        <div class="text-[11px] md:text-xs text-slate-700 bg-slate-200/80 px-2.5 py-1 rounded-md font-bold shrink-0 min-w-[85px] text-right" title="前年目標: $${parentPrevSum.toLocaleString()}">
-                            <span class="hidden md:inline">前年: </span>$${parentPrevSum.toLocaleString()}
+                        <div class="text-[11px] md:text-xs text-slate-700 bg-slate-200/80 px-2 py-1 rounded-md font-bold shrink-0 text-right" title="上月目標: $${parentPrevSum.toLocaleString()}">
+                            <span class="hidden md:inline">上月: </span>$${parentPrevSum.toLocaleString()}
                         </div>
-                        <div class="flex items-center space-x-1 bg-slate-200/50 border border-slate-300 rounded-lg px-2.5 py-1 w-28 sm:w-32 shrink-0 select-none">
-                            <span class="text-slate-600 text-[11px] md:text-xs shrink-0 font-bold select-none">🔒 NT$</span>
+                        <div class="flex items-center space-x-1 bg-slate-200/50 border border-slate-300 rounded-lg px-2 py-1 w-24 sm:w-28 shrink-0 select-none">
+                            <span class="text-slate-600 text-[10px] md:text-xs shrink-0 font-bold select-none">🔒 $</span>
                             <input type="text" id="budget-parent-${parentCat}" value="${parentCurrSum || 0}" readonly class="parent-budget-input w-full bg-transparent text-xs md:text-sm text-right font-extrabold text-slate-700 focus:outline-none">
                         </div>
                     </div>
@@ -2676,21 +2531,21 @@ function handleBiDirectionalSync(spreadsheet, localData) {
 
                 subs.forEach(subCat => {
                     const subKey = `${parentCat} > ${subCat}`;
-                    const subPrev = prevYearBudgets[subKey]?.amount || 0;
-                    const subCurr = targetYearBudgets[subKey]?.amount || '';
+                    const subPrev = prevMonthBudgets[subKey]?.amount || 0;
+                    const subCurr = targetMonthBudgets[subKey]?.amount || '';
 
                     const subRow = document.createElement('div');
                     subRow.className = "flex items-center justify-between gap-3 p-3 pl-8 hover:bg-slate-50";
                     subRow.innerHTML = `
-                        <div class="truncate flex-1 min-w-0" title="👉 ${subCat}">
-                            <p class="text-slate-800 font-bold text-xs md:text-sm truncate">👉 ${subCat}</p>
+                        <div class="flex-1 min-w-0 pr-2">
+                            <p class="text-slate-800 font-bold text-xs md:text-sm whitespace-normal break-words leading-tight text-slate-600">👉 ${subCat}</p>
                         </div>
                         <div class="flex items-center space-x-2 md:space-x-3 shrink-0 min-w-0">
-                            <div class="text-[11px] md:text-xs text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md font-bold shrink-0 min-w-[85px] text-right" title="前年: $${subPrev.toLocaleString()}">
-                                <span class="hidden md:inline">前年: </span>$${subPrev.toLocaleString()}
+                            <div class="text-[11px] md:text-xs text-slate-500 bg-slate-50 px-2 py-1 rounded-md font-bold shrink-0 text-right" title="上月: $${subPrev.toLocaleString()}">
+                                <span class="hidden md:inline">上月: </span>$${subPrev.toLocaleString()}
                             </div>
-                            <div class="flex items-center space-x-1 bg-white border border-slate-300 rounded-lg px-2.5 py-1 w-28 sm:w-32 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 shrink-0 shadow-sm">
-                                <span class="text-slate-500 text-[11px] md:text-xs font-bold select-none">NT$</span>
+                            <div class="flex items-center space-x-1 bg-white border border-slate-300 rounded-lg px-2 py-1 w-24 sm:w-28 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 shrink-0 shadow-sm">
+                                <span class="text-slate-400 text-[10px] md:text-xs font-bold select-none">$</span>
                                 <input type="number" data-parent="${parentCat}" data-subcat="${subCat}" oninput="handleSubBudgetInput('${parentCat}', 'income')" value="${subCurr}" min="0" placeholder="0" class="sub-budget-input sub-budget-inputs-${parentCat} w-full bg-transparent text-xs md:text-sm text-right font-black text-slate-900 focus:outline-none" inputmode="decimal">
                             </div>
                         </div>
@@ -2707,30 +2562,33 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             updateSaveBudgetButtonState();
         }
 
-        function copyPreviousYearBudget() {
-            const prevYear = (parseInt(currentBudgetYear, 10) - 1).toString();
-            const prevYearBudgets = budgets[prevYear];
+        function copyPreviousMonthBudget() {
+            let [y, m] = currentBudgetPeriod.split('-');
+            let dObj = new Date(parseInt(y, 10), parseInt(m, 10) - 2, 1);
+            let prevYM = `${dObj.getFullYear()}-${(dObj.getMonth() + 1).toString().padStart(2, '0')}`;
+
+            const prevBudgets = budgets[prevYM];
             
-            if (!prevYearBudgets || Object.keys(prevYearBudgets).length === 0) {
-                showToast(`❌ 找不到前一年度 (${prevYear} 年) 的預算紀錄！`, "error");
+            if (!prevBudgets || Object.keys(prevBudgets).length === 0) {
+                showToast(`❌ 找不到上個月份 (${prevYM}) 的預算紀錄！`, "error");
                 return;
             }
 
             const copied = {};
-            Object.keys(prevYearBudgets).forEach(key => {
+            Object.keys(prevBudgets).forEach(key => {
                 copied[key] = {
-                    amount: prevYearBudgets[key].amount,
+                    amount: prevBudgets[key].amount,
                     updatedAt: Date.now()
                 };
             });
 
-            budgets[currentBudgetYear] = copied;
+            budgets[currentBudgetPeriod] = copied;
             
             initBudgetInputs();
             isBudgetPageDirty = true;
             updateSaveBudgetButtonState();
             
-            showToast(`📋 已從 ${prevYear} 年完整複製預算數據！請點擊右下角「儲存」同步至雲端。`, "info");
+            showToast(`📋 已從 ${prevYM} 完整複製預算數據！請點擊右下角「儲存」同步至雲端。`, "info");
         }
 
         function toggleBudgetCollapse(parentCat) {
@@ -2773,11 +2631,11 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             if (isBudgetPageDirty) {
                 btn.disabled = false;
                 btn.className = "bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm px-6 py-2.5 rounded-xl transition shadow-md shadow-rose-100 animate-pulse";
-                btn.innerHTML = `⚠️ 儲存 ${currentBudgetYear} 年預算變更 (未存)`;
+                btn.innerHTML = `⚠️ 儲存 ${currentBudgetPeriod} 預算變更 (未存)`;
             } else {
                 btn.disabled = true;
                 btn.className = "bg-slate-200 text-slate-400 font-bold text-sm px-6 py-2.5 rounded-xl cursor-not-allowed shadow-none";
-                btn.innerHTML = `🟢 ${currentBudgetYear} 預算已與本機庫對齊`;
+                btn.innerHTML = `🟢 本月預算已與本機庫對齊`;
             }
         }
 
@@ -2802,9 +2660,9 @@ function handleBiDirectionalSync(spreadsheet, localData) {
         }
 
         function saveAllBudgets() {
-            if (!budgets[currentBudgetYear]) budgets[currentBudgetYear] = {};
+            if (!budgets[currentBudgetPeriod]) budgets[currentBudgetPeriod] = {};
 
-            const targetYearBudgets = budgets[currentBudgetYear];
+            const targetMonthBudgets = budgets[currentBudgetPeriod];
             const timestamp = Date.now();
 
             Object.keys(categoryMap.expense).forEach(parentCat => {
@@ -2816,14 +2674,14 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                     const val = parseFloat(sub.value) || 0;
                     const key = `${parentCat} > ${subCat}`;
                     
-                    targetYearBudgets[key] = {
+                    targetMonthBudgets[key] = {
                         amount: val,
                         updatedAt: timestamp
                     };
                     parentSum += val;
                 });
                 
-                targetYearBudgets[parentCat] = {
+                targetMonthBudgets[parentCat] = {
                     amount: parentSum,
                     updatedAt: timestamp
                 };
@@ -2838,14 +2696,14 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                     const val = parseFloat(sub.value) || 0;
                     const key = `${parentCat} > ${subCat}`;
                     
-                    targetYearBudgets[key] = {
+                    targetMonthBudgets[key] = {
                         amount: val,
                         updatedAt: timestamp
                     };
                     parentSum += val;
                 });
                 
-                targetYearBudgets[parentCat] = {
+                targetMonthBudgets[parentCat] = {
                     amount: parentSum,
                     updatedAt: timestamp
                 };
@@ -2855,7 +2713,7 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             isBudgetPageDirty = false;
             updateSaveBudgetButtonState();
 
-            showToast(`💾 ${currentBudgetYear} 年度大類與細項預算已寫入資料庫！`, "success");
+            showToast(`💾 ${currentBudgetPeriod} 月度大類與細項預算已寫入資料庫！`, "success");
             initBudgetInputs();
             updateSyncStatusUI();
 
@@ -2895,8 +2753,7 @@ function handleBiDirectionalSync(spreadsheet, localData) {
         }
 
         function renderDashboard() {
-            const today = new Date();
-            const currentYM = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}`;
+            const currentYM = `${todayDateObj.getFullYear()}-${(todayDateObj.getMonth() + 1).toString().padStart(2, '0')}`;
             const data = getMonthlyFinancials(currentYM);
 
             document.getElementById('dash-total-income').innerText = `NT$ ${data.totalIncome.toLocaleString()}`;
@@ -2911,8 +2768,8 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             sRateEl.className = data.savingsRate < 20 ? "text-xl md:text-2xl font-bold text-amber-500" : "text-xl md:text-2xl font-bold text-emerald-600";
 
             renderExpensePieChart(data.actuals);
-            renderBudgetCompareChart(data.actuals);
-            renderBudgetAlerts(data.actuals);
+            renderBudgetCompareChart(data.actuals, currentYM);
+            renderBudgetAlerts(data.actuals, currentYM);
             renderRecentTransactions(data.filteredList);
         }
 
@@ -2979,7 +2836,7 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             });
         }
 
-        function renderBudgetCompareChart(actuals) {
+        function renderBudgetCompareChart(actuals, currentYM) {
             const ctx = document.getElementById('budgetCompareChart').getContext('2d');
             const allCats = Object.keys(categoryMap.expense);
             
@@ -2987,9 +2844,7 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             const labels = allCats.slice(0, 5);
             
             const actualData = labels.map(cat => actuals[cat] || 0);
-            
-            const currentYearStr = new Date().getFullYear().toString();
-            const budgetData = labels.map(cat => getBudgetForCategory(currentYearStr, cat));
+            const budgetData = labels.map(cat => getBudgetForCategory(currentYM, cat));
 
             if (dashboardBarChartInstance) dashboardBarChartInstance.destroy();
 
@@ -2998,7 +2853,7 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                 data: {
                     labels,
                     datasets: [
-                        { label: '預算額度', data: budgetData, backgroundColor: '#cbd5e1', borderRadius: 5 },
+                        { label: '本月預算', data: budgetData, backgroundColor: '#cbd5e1', borderRadius: 5 },
                         { label: '實際花費', data: actualData, backgroundColor: '#fb7185', borderRadius: 5 }
                     ]
                 },
@@ -3034,15 +2889,13 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             });
         }
 
-        function renderBudgetAlerts(actuals) {
+        function renderBudgetAlerts(actuals, currentYM) {
             const alertBox = document.getElementById('dashboard-budget-alerts');
             alertBox.innerHTML = '';
             let alertCount = 0;
 
-            const currentYearStr = new Date().getFullYear().toString();
-
             Object.keys(categoryMap.expense).forEach(cat => {
-                const limit = getBudgetForCategory(currentYearStr, cat);
+                const limit = getBudgetForCategory(currentYM, cat);
                 const act = actuals[cat] || 0;
                 if (limit > 0) {
                     const ratio = act / limit;
@@ -3057,7 +2910,7 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                 alertBox.innerHTML = `
                     <div class="text-center py-10 text-slate-400">
                         <span class="text-3xl block mb-1">🌿</span>
-                        <p class="text-xs font-medium">預算控制良好</p>
+                        <p class="text-xs font-medium">本月預算控制良好</p>
                     </div>
                 `;
             }
@@ -3091,7 +2944,7 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             const sorted = [...list].sort((a,b) => b.date.localeCompare(a.date)).slice(0, 5);
 
             if (sorted.length === 0) {
-                container.innerHTML = `<tr><td colspan="4" class="py-8 text-center text-slate-400 text-xs">本月尚無任何記帳</td></tr>`;
+                container.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-slate-400 text-xs">本月尚無任何記帳</td></tr>`;
                 return;
             }
 
@@ -3101,14 +2954,16 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                 const absAmount = Math.abs(item.amount);
                 const displaySymbol = isInc ? (item.amount >= 0 ? '+' : '-') : (item.amount >= 0 ? '-' : '+');
                 const amtColor = isInc ? (item.amount >= 0 ? 'text-emerald-600 font-semibold' : 'text-rose-600 font-semibold') : (item.amount >= 0 ? 'text-rose-600 font-semibold' : 'text-emerald-600 font-semibold');
-                
+                const payBadge = item.payMethod === '信用卡' ? '💳' : '💵';
+
                 tr.innerHTML = `
                     <td class="py-3 text-slate-500 text-xs font-medium">${item.date.substring(5)}</td>
                     <td class="py-3">
                         <div class="font-bold text-slate-700 text-xs md:text-sm">${item.parentCat}</div>
                         <div class="text-[10px] text-slate-400">${item.subCat}</div>
                     </td>
-                    <td class="py-3 text-slate-400 text-xs truncate max-w-[140px]">${item.note}</td>
+                    <td class="py-3 text-slate-400 text-xs truncate max-w-[120px]">${item.note}</td>
+                    <td class="py-3 text-slate-500 text-xs text-center" title="${item.payMethod}">${payBadge}</td>
                     <td class="py-3 text-right ${amtColor} text-xs md:text-sm">${displaySymbol}$${absAmount.toLocaleString()}</td>
                 `;
                 container.appendChild(tr);
@@ -3119,9 +2974,8 @@ function handleBiDirectionalSync(spreadsheet, localData) {
         // 13. 財務報表、PDF 輸出
         // ==========================================
         function initReportConfig() {
-            const today = new Date();
-            const y = today.getFullYear();
-            const m = today.getMonth() + 1;
+            const y = todayDateObj.getFullYear();
+            const m = todayDateObj.getMonth() + 1;
             const lastDay = new Date(y, m, 0).getDate();
             const mStr = m.toString().padStart(2, '0');
 
@@ -3134,9 +2988,8 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             const startInput = document.getElementById('report-start-date');
             const endInput = document.getElementById('report-end-date');
             
-            const today = new Date();
-            const y = today.getFullYear();
-            const m = today.getMonth();
+            const y = todayDateObj.getFullYear();
+            const m = todayDateObj.getMonth();
 
             if (range === 'this-month') {
                 const mStr = (m + 1).toString().padStart(2, '0');
@@ -3180,8 +3033,7 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             document.getElementById('ai-advisor-container').classList.add('hidden');
             document.getElementById('report-period-text').innerText = `報告區間：${start.replace(/-/g, '/')} ~ ${end.replace(/-/g, '/')}`;
 
-            const today = new Date();
-            document.getElementById('report-print-date').innerText = `日期：${today.getFullYear()}年 ${(today.getMonth()+1).toString().padStart(2, '0')}月 ${today.getDate().toString().padStart(2, '0')}日`;
+            document.getElementById('report-print-date').innerText = `日期：${todayDateObj.getFullYear()}年 ${(todayDateObj.getMonth()+1).toString().padStart(2, '0')}月 ${todayDateObj.getDate().toString().padStart(2, '0')}日`;
 
             const filtered = transactions.filter(t => t.date >= start && t.date <= end);
 
@@ -3221,14 +3073,12 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                 insightEl.className = "mt-1 text-emerald-600 font-bold text-xs md:text-sm";
             }
 
-            renderReportCharts(repActuals, start);
-            renderReportBudgetTable(repActuals, start);
+            renderReportCharts(repActuals, start, end);
+            renderReportBudgetTable(repActuals, start, end);
             renderReportTopExpenses(filtered);
         }
 
-        function renderReportCharts(actuals, startDate) {
-            const reportYear = startDate.substring(0, 4);
-
+        function renderReportCharts(actuals, startDate, endDate) {
             // 1. 支出圓餅
             const expLabels = [];
             const expValues = [];
@@ -3322,7 +3172,7 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             expCompareLabels.sort((a,b) => (actuals[b] || 0) - (actuals[a] || 0));
             const barExpLabels = expCompareLabels.slice(0, 5);
             const actualExpData = barExpLabels.map(cat => actuals[cat] || 0);
-            const budgetExpData = barExpLabels.map(cat => getBudgetForCategory(reportYear, cat));
+            const budgetExpData = barExpLabels.map(cat => getBudgetForCategoryRange(startDate, endDate, cat));
 
             if (reportBarChartInstance) reportBarChartInstance.destroy();
             reportBarChartInstance = new Chart(document.getElementById('reportBarChart').getContext('2d'), {
@@ -3330,7 +3180,7 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                 data: {
                     labels: barExpLabels,
                     datasets: [
-                        { label: `${reportYear}預算`, data: budgetExpData, backgroundColor: '#cbd5e1', borderRadius: 4 },
+                        { label: `合計預算`, data: budgetExpData, backgroundColor: '#cbd5e1', borderRadius: 4 },
                         { label: '實際支出', data: actualExpData, backgroundColor: '#fb7185', borderRadius: 4 }
                     ]
                 },
@@ -3368,7 +3218,7 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             incCompareLabels.sort((a,b) => (actuals[b] || 0) - (actuals[a] || 0));
             const barIncLabels = incCompareLabels.slice(0, 5);
             const actualIncData = barIncLabels.map(cat => actuals[cat] || 0);
-            const budgetIncData = barIncLabels.map(cat => getBudgetForCategory(reportYear, cat));
+            const budgetIncData = barIncLabels.map(cat => getBudgetForCategoryRange(startDate, endDate, cat));
 
             if (reportIncomeBarChartInstance) reportIncomeBarChartInstance.destroy();
             reportIncomeBarChartInstance = new Chart(document.getElementById('reportIncomeBarChart').getContext('2d'), {
@@ -3376,7 +3226,7 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                 data: {
                     labels: barIncLabels,
                     datasets: [
-                        { label: `${reportYear}目標`, data: budgetIncData, backgroundColor: '#cbd5e1', borderRadius: 4 },
+                        { label: `合計目標`, data: budgetIncData, backgroundColor: '#cbd5e1', borderRadius: 4 },
                         { label: '實際收入', data: actualIncData, backgroundColor: '#34d399', borderRadius: 4 }
                     ]
                 },
@@ -3410,10 +3260,9 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             });
         }
 
-        function renderReportBudgetTable(actuals, startDate) {
+        function renderReportBudgetTable(actuals, startDate, endDate) {
             const tbody = document.getElementById('report-budget-table-rows');
             tbody.innerHTML = '';
-            const reportYear = startDate.substring(0, 4);
 
             const allCats = [
                 ...Object.keys(categoryMap.income).map(c => ({ name: c, type: 'income', label: '收入' })),
@@ -3421,7 +3270,7 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             ];
 
             allCats.forEach(cat => {
-                const limit = getBudgetForCategory(reportYear, cat.name);
+                const limit = getBudgetForCategoryRange(startDate, endDate, cat.name);
                 const act = actuals[cat.name] || 0;
                 if (limit === 0 && act === 0) return;
                 appendBudgetTableRow(tbody, cat.name, cat.type, limit, act);
@@ -3535,7 +3384,7 @@ function handleBiDirectionalSync(spreadsheet, localData) {
             if (type === 'error') bgClass = "bg-rose-600";
             if (type === 'info') bgClass = "bg-blue-600";
 
-            toast.className = `${bgClass} text-white px-5 py-3 rounded-2xl shadow-xl transform transition-all duration-300 translate-y-2 opacity-0 flex items-center space-x-2 text-sm font-semibold pointer-events-auto max-w-sm`;
+            toast.className = `${bgClass} text-white px-5 py-3 rounded-2xl shadow-xl transform transition-all duration-300 translate-y-2 opacity-0 flex items-center space-x-2 text-sm font-semibold pointer-events-auto max-w-sm mx-auto`;
             toast.innerText = message;
 
             container.appendChild(toast);
@@ -3560,20 +3409,20 @@ function handleBiDirectionalSync(spreadsheet, localData) {
 
             if (txStatusText) {
                 if (unsyncedTxCount === 0) {
-                    txStatusText.innerHTML = `實際收支：<span class="text-emerald-600 font-extrabold">與雲端完全鏡像對齊</span>`;
+                    txStatusText.innerHTML = `收支：<span class="text-emerald-600 font-extrabold">已對齊</span>`;
                     txStatusText.className = "inline-flex items-center text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md font-semibold border border-emerald-200/50";
                 } else {
-                    txStatusText.innerHTML = `實際收支：<span class="text-rose-500 font-extrabold">${unsyncedTxCount} 筆異動待智慧合併</span>`;
+                    txStatusText.innerHTML = `收支：<span class="text-rose-500 font-extrabold">${unsyncedTxCount} 筆待合併</span>`;
                     txStatusText.className = "inline-flex items-center text-[10px] bg-rose-50 text-rose-700 px-2 py-0.5 rounded-md font-semibold border border-rose-200/50";
                 }
             }
 
             if (bgStatusText) {
                 if (unsyncedBgCount === 0) {
-                    bgStatusText.innerHTML = `年度預算：<span class="text-emerald-600 font-extrabold">與雲端完全鏡像對齊</span>`;
+                    bgStatusText.innerHTML = `預算：<span class="text-emerald-600 font-extrabold">已對齊</span>`;
                     bgStatusText.className = "inline-flex items-center text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md font-semibold border border-emerald-200/50";
                 } else {
-                    bgStatusText.innerHTML = `年度預算：<span class="text-rose-500 font-extrabold">${unsyncedBgCount} 項異動待智慧合併</span>`;
+                    bgStatusText.innerHTML = `預算：<span class="text-rose-500 font-extrabold">${unsyncedBgCount} 項待合併</span>`;
                     bgStatusText.className = "inline-flex items-center text-[10px] bg-rose-50 text-rose-700 px-2 py-0.5 rounded-md font-semibold border border-rose-200/50";
                 }
             }
@@ -3630,13 +3479,12 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                 if (actuals[t.parentCat] !== undefined) actuals[t.parentCat] += t.amount;
             });
 
-            const reportYear = start.substring(0, 4);
             let budgetVsActualSummary = "";
             Object.keys(categoryMap.expense).forEach(cat => {
-                const limit = getBudgetForCategory(reportYear, cat);
+                const limit = getBudgetForCategoryRange(start, end, cat);
                 const act = actuals[cat] || 0;
                 if (limit > 0 || act > 0) {
-                    budgetVsActualSummary += `- 【${cat}】: 預算 NT$ ${limit.toLocaleString()} / 實際 NT$ ${act.toLocaleString()}\n`;
+                    budgetVsActualSummary += `- 【${cat}】: 區間預算 NT$ ${limit.toLocaleString()} / 實際 NT$ ${act.toLocaleString()}\n`;
                 }
             });
 
@@ -3675,70 +3523,7 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                 document.getElementById('confirm-modal-box').classList.add('scale-95');
             }, 10);
 
-            if (actionType === 'restore') {
-                icon.innerText = "🔄";
-                title.innerText = "確認還原示範資料？";
-                message.innerText = "這將會用系統預設的示範記帳明細覆蓋您目前的本機明細與預算。";
-                btnAction.innerText = "確認還原";
-                btnAction.className = "flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-xs font-bold transition shadow-md";
-                confirmActionCallback = () => {
-                    transactions = alignMockDataDates(MOCK_TRANSACTIONS);
-                    localStorage.setItem('ok_transactions', JSON.stringify(transactions));
-                    
-                    budgets = {};
-                    Object.keys(PRESET_BUDGETS).forEach(yr => {
-                        budgets[yr] = {};
-                        Object.keys(PRESET_BUDGETS[yr]).forEach(key => {
-                            budgets[yr][key] = {
-                                amount: PRESET_BUDGETS[yr][key],
-                                updatedAt: Date.now()
-                            };
-                        });
-                    });
-                    localStorage.setItem('ok_budgets', JSON.stringify(budgets));
-                    
-                    deletedTxLog = [];
-                    deletedBudgetLog = [];
-                    localStorage.setItem('ok_deleted_tx_log', JSON.stringify([]));
-                    localStorage.setItem('ok_deleted_budget_log', JSON.stringify([]));
-                    localStorage.removeItem('ok_last_sync_time'); // 清除上次同步時間，使下次重新握手
-
-                    populateDynamicYearDropdowns();
-                    initFilterOptions();
-                    renderTransactionTable();
-                    initBudgetInputs();
-                    if (!document.getElementById('tab-dashboard').classList.contains('hidden')) renderDashboard();
-                    showToast("✨ 示範資料與初始預算還原成功！", "success");
-                    updateSyncStatusUI();
-                };
-            } else if (actionType === 'clear') {
-                icon.innerText = "🗑️";
-                title.innerText = "確認清空本機所有紀錄？";
-                message.innerText = "此動作會將您在本機瀏覽器保存的所有流水帳、預算與自訂分類刪除且無法復原！";
-                btnAction.innerText = "確認清空本機";
-                btnAction.className = "flex-1 bg-rose-600 hover:bg-rose-700 text-white py-2.5 rounded-xl text-xs font-bold transition shadow-md";
-                confirmActionCallback = () => {
-                    transactions = [];
-                    localStorage.removeItem('ok_transactions');
-                    
-                    deletedTxLog = [];
-                    deletedBudgetLog = [];
-                    localStorage.removeItem('ok_deleted_tx_log');
-                    localStorage.removeItem('ok_deleted_budget_log');
-                    localStorage.removeItem('ok_last_sync_time');
-                    
-                    budgets = {};
-                    localStorage.removeItem('ok_budgets');
-
-                    populateDynamicYearDropdowns();
-                    initFilterOptions();
-                    renderTransactionTable();
-                    initBudgetInputs();
-                    if (!document.getElementById('tab-dashboard').classList.contains('hidden')) renderDashboard();
-                    showToast("🗑️ 本機所有收支交易與預算資料已徹底清除！", "info");
-                    updateSyncStatusUI();
-                };
-            } else if (actionType === 'delete-tx') {
+            if (actionType === 'delete-tx') {
                 icon.innerText = "❌";
                 title.innerText = "確認刪除此筆記帳？";
                 message.innerText = "刪除後的帳目將會同步排入雙向智慧備份待刪除清單。";
@@ -3766,8 +3551,8 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                 };
             } else if (actionType === 'clear-current-budget') {
                 icon.innerText = "🗑️";
-                title.innerText = `確認清空 ${currentBudgetYear} 年度預算？`;
-                message.innerText = "此動作會將您目前選定年份的所有支出與收入細項預算數值在畫面上全數歸零。本機資料尚未覆蓋，請記得點擊右下角「儲存」才會正式寫入並同步。";
+                title.innerText = `確認清空本月預算？`;
+                message.innerText = "此動作會將您目前選定月份的所有支出與收入預算數值在畫面上全數歸零。本機資料尚未覆蓋，請記得點擊右下角「儲存」才會正式同步寫入。";
                 btnAction.innerText = "確認歸零";
                 btnAction.className = "flex-1 bg-rose-600 hover:bg-rose-700 text-white py-2.5 rounded-xl text-xs font-bold transition shadow-md";
                 confirmActionCallback = () => {
@@ -3788,7 +3573,7 @@ function handleBiDirectionalSync(spreadsheet, localData) {
                     updateBudgetSummaryTotal();
                     isBudgetPageDirty = true;
                     updateSaveBudgetButtonState();
-                    showToast(`🗑️ ${currentBudgetYear} 年度預算已清零！請點擊右下角的「儲存」按鈕確認。`, "info");
+                    showToast(`🗑️ ${currentBudgetPeriod} 預算已清零！請點擊右下角「儲存」按鈕確認。`, "info");
                 };
             }
         }
