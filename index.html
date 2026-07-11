@@ -1,6 +1,17 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
+    <!--
+      ========================================================
+      御守金 - 家庭收支紀錄系統
+      版本修改日期: 2026-07-11 18:05
+      修改內容: 
+      1. 雲端表單(GAS)收支紀錄中的「日期」與預算編列的「年分」皆強制固定置左對齊。
+      2. 系統設定頁面中，Gemini API 金鑰與 GAS 網址取得說明改為摺疊面板，並提供詳細的 1~8 步操作步驟。
+      3. AI 快速記帳預覽區，新增「取消本次匯入」按鈕功能。
+      4. 保持所有 Excel 匯出入、圖表及巢狀下拉選單等核心功能完整。
+      ========================================================
+    -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title>御守金 - 家庭收支紀錄 — 掌握你的現金流</title>
@@ -12,6 +23,10 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <!-- html2pdf.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- SheetJS (讀取 Excel 匯入) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- ExcelJS (產生帶有巢狀下拉選單的 Excel 範本與匯出) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght=300;400;500;700;900&display=swap');
@@ -27,8 +42,7 @@
             body { background-color: #ffffff !important; }
         }
         /* 自訂核取方塊樣式 */
-        .custom-checkbox { width: 1.25rem; height: 1.25rem; border-radius: 0.375rem; border: 2px solid #cbd5e1; cursor: pointer; }
-        .custom-checkbox:checked { background-color: #10b981; border-color: #10b981; }
+        .custom-checkbox { width: 1.25rem; height: 1.25rem; border-radius: 0.375rem; border: 2px solid #cbd5e1; cursor: pointer; accent-color: #10b981; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
@@ -43,7 +57,7 @@
                 </div>
             </div>
             <div class="flex items-center justify-center text-sm">
-                <span id="current-date-badge" class="bg-emerald-800 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap">
+                <span id="current-date-badge" class="bg-emerald-800 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shadow-inner">
                     系統時間: 載入中...
                 </span>
             </div>
@@ -70,10 +84,11 @@
             </button>
         </aside>
 
-        <main class="flex-1 min-w-0">
+        <main class="flex-1 min-w-0 relative">
             
             <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2 pointer-events-none"></div>
 
+            <!-- 確認對話框 Modal -->
             <div id="custom-confirm-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
                 <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-100 transform transition-all scale-95 duration-200" id="confirm-modal-box">
                     <div class="text-center space-y-3">
@@ -88,7 +103,7 @@
                 </div>
             </div>
 
-            <!-- 同步差異預覽 Modal (Dry-Run Confirm) -->
+            <!-- 同步差異預覽 Modal -->
             <div id="sync-diff-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
                 <div class="bg-white rounded-2xl w-full max-w-3xl p-6 shadow-2xl border border-slate-100 flex flex-col max-h-[90vh] transform transition-all scale-95 duration-200" id="sync-diff-box">
                     <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
@@ -96,18 +111,19 @@
                             <h3 class="text-lg font-black text-slate-800 flex items-center space-x-2">
                                 <span>🔄 同步變更預覽與確認</span>
                             </h3>
-                            <p class="text-xs text-slate-500 mt-1">系統已完成比對。請確認即將執行的變更，您可以取消勾選以忽略特定項目。</p>
+                            <p class="text-xs text-slate-500 mt-1">系統已完成比對。請確認即將執行的變更。</p>
                         </div>
-                        <div class="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-inner flex items-center space-x-2">
-                            <span>需決策項目:</span>
-                            <span id="diff-total-count" class="text-sm font-black">0</span>
+                        <div class="flex flex-col items-end gap-2">
+                            <div class="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-inner flex items-center space-x-2">
+                                <span>即將變更:</span><span id="diff-total-count" class="text-sm font-black">0</span><span>筆</span>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button onclick="toggleAllCheckboxes('diff-chk', true); updateSyncDiffCount();" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded transition border border-slate-200">全選</button>
+                                <button onclick="toggleAllCheckboxes('diff-chk', false); updateSyncDiffCount();" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded transition border border-slate-200">全取消</button>
+                            </div>
                         </div>
                     </div>
-
-                    <div class="flex-1 overflow-y-auto no-scrollbar border border-slate-200 rounded-xl bg-slate-50 p-3 space-y-4 shadow-inner" id="sync-diff-container">
-                        <!-- 動態插入差異項目 -->
-                    </div>
-
+                    <div class="flex-1 overflow-y-auto no-scrollbar border border-slate-200 rounded-xl bg-slate-50 p-3 space-y-3 shadow-inner" id="sync-diff-container"></div>
                     <div class="flex justify-end space-x-3 mt-5 pt-4 border-t border-slate-100">
                         <button onclick="closeSyncDiffModal()" class="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition">取消同步</button>
                         <button onclick="commitSyncFromUI()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-indigo-600 hover:from-emerald-700 hover:to-indigo-700 text-white font-bold text-xs shadow-md transition flex items-center space-x-1">
@@ -117,43 +133,81 @@
                 </div>
             </div>
 
-            <div id="adv-budget-copy-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-                <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-100 transform transition-all scale-95 duration-200" id="adv-budget-copy-box">
-                    <div class="space-y-4">
-                        <h3 class="text-lg font-bold text-slate-800 flex items-center space-x-2"><span>📋 進階複製預算</span></h3>
+            <!-- 匯入 Excel 預覽 Modal (收支) -->
+            <div id="import-tx-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+                <div class="bg-white rounded-2xl w-full max-w-4xl p-6 shadow-2xl border border-slate-100 flex flex-col max-h-[90vh] transform transition-all scale-95 duration-200" id="import-tx-box">
+                    <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
                         <div>
-                            <label class="block text-xs font-semibold text-slate-500 mb-1">選擇資料來源 (從哪裡複製)</label>
+                            <h3 class="text-lg font-black text-slate-800 flex items-center space-x-2"><span>📥 匯入收支資料預覽</span></h3>
+                            <p class="text-xs text-slate-500 mt-1">請勾選欲匯入系統的紀錄 (會自動排除標題列及空白列)。</p>
+                        </div>
+                        <div class="flex flex-col items-end gap-2">
+                            <div class="bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-inner flex items-center space-x-2">
+                                <span>選取準備匯入:</span><span id="import-tx-count" class="text-sm font-black">0</span><span>筆</span>
+                            </div>
                             <div class="flex space-x-2">
-                                <select id="adv-copy-src-year" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3 py-2 focus:outline-none"></select>
-                                <select id="adv-copy-src-month" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3 py-2 focus:outline-none">
-                                    <option value="all">全年 (1~12月)</option>
-                                    <option value="01">1月</option>
-                                    <option value="02">2月</option>
-                                    <option value="03">3月</option>
-                                    <option value="04">4月</option>
-                                    <option value="05">5月</option>
-                                    <option value="06">6月</option>
-                                    <option value="07">7月</option>
-                                    <option value="08">8月</option>
-                                    <option value="09">9月</option>
-                                    <option value="10">10月</option>
-                                    <option value="11">11月</option>
-                                    <option value="12">12月</option>
-                                </select>
+                                <button onclick="toggleAllCheckboxes('import-tx-chk', true); updateImportTxCount();" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded transition border border-slate-200">全選</button>
+                                <button onclick="toggleAllCheckboxes('import-tx-chk', false); updateImportTxCount();" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded transition border border-slate-200">全取消</button>
                             </div>
                         </div>
-                        <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-100">
-                            <p class="text-xs font-bold text-emerald-800 mb-1">覆蓋目標說明：</p>
-                            <p id="adv-copy-target-desc" class="text-xs text-emerald-600 leading-relaxed">將覆蓋目前選擇的預算資料...</p>
-                        </div>
                     </div>
-                    <div class="flex space-x-3 mt-6">
-                        <button onclick="closeAdvBudgetCopyModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 rounded-xl text-xs font-bold transition">取消</button>
-                        <button onclick="executeAdvBudgetCopy()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-xs font-bold transition shadow-md">確認複製</button>
+                    <div class="flex-1 overflow-auto no-scrollbar border border-slate-200 rounded-xl bg-slate-50 shadow-inner relative">
+                        <table class="w-full text-left text-xs whitespace-nowrap">
+                            <thead class="sticky top-0 bg-slate-100 border-b border-slate-200 shadow-sm z-10">
+                                <tr class="text-slate-600">
+                                    <th class="py-2 px-3 text-center">勾選</th>
+                                    <th class="py-2 px-3">日期</th><th class="py-2 px-3">類型</th><th class="py-2 px-3">大類</th><th class="py-2 px-3">細項</th><th class="py-2 px-3">支付</th><th class="py-2 px-3 text-right">金額</th><th class="py-2 px-3">備註</th>
+                                </tr>
+                            </thead>
+                            <tbody id="import-tx-tbody" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                    <div class="flex justify-end space-x-3 mt-5 pt-4 border-t border-slate-100">
+                        <button onclick="closeImportTxModal()" class="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition">取消匯入</button>
+                        <button onclick="commitImportTx()" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition">🚀 確定匯入</button>
                     </div>
                 </div>
             </div>
 
+            <!-- 匯入 Excel 預覽 Modal (預算) -->
+            <div id="import-bg-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+                <div class="bg-white rounded-2xl w-full max-w-5xl p-6 shadow-2xl border border-slate-100 flex flex-col max-h-[90vh] transform transition-all scale-95 duration-200" id="import-bg-box">
+                    <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                        <div>
+                            <h3 class="text-lg font-black text-slate-800 flex items-center space-x-2"><span>🎯 匯入預算編列預覽</span></h3>
+                            <p class="text-xs text-slate-500 mt-1">若遇到同年度、同分類的項目，匯入將會【直接覆蓋】現有紀錄。</p>
+                        </div>
+                        <div class="flex flex-col items-end gap-2">
+                            <div class="bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-inner flex items-center space-x-2">
+                                <span>選取準備匯入:</span><span id="import-bg-count" class="text-sm font-black">0</span><span>筆</span>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button onclick="toggleAllCheckboxes('import-bg-chk', true); updateImportBgCount();" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded transition border border-slate-200">全選</button>
+                                <button onclick="toggleAllCheckboxes('import-bg-chk', false); updateImportBgCount();" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded transition border border-slate-200">全取消</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex-1 overflow-auto no-scrollbar border border-slate-200 rounded-xl bg-slate-50 shadow-inner relative">
+                        <table class="w-full text-left text-xs whitespace-nowrap">
+                            <thead class="sticky top-0 bg-slate-100 border-b border-slate-200 shadow-sm z-10">
+                                <tr class="text-slate-600">
+                                    <th class="py-2 px-3 text-center">勾選</th>
+                                    <th class="py-2 px-3">年份</th><th class="py-2 px-3">類型</th><th class="py-2 px-3">大類</th><th class="py-2 px-3">細項</th>
+                                    <th class="py-2 px-2 text-right">1月</th><th class="py-2 px-2 text-right">2月</th><th class="py-2 px-2 text-right">3月</th>
+                                    <th class="py-2 px-2 text-right">4月</th><th class="py-2 px-2 text-right">5月</th><th class="py-2 px-2 text-right">6月</th>
+                                </tr>
+                            </thead>
+                            <tbody id="import-bg-tbody" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                    <div class="flex justify-end space-x-3 mt-5 pt-4 border-t border-slate-100">
+                        <button onclick="closeImportBgModal()" class="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition">取消匯入</button>
+                        <button onclick="commitImportBg()" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition">🚀 確定匯入</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 批次刪除 Modal -->
             <div id="batch-delete-tx-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
                 <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-100 transform transition-all scale-95 duration-200" id="batch-delete-tx-box">
                     <div class="space-y-4">
@@ -164,18 +218,10 @@
                                 <select id="batch-del-year" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3 py-2 focus:outline-none"></select>
                                 <select id="batch-del-month" class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3 py-2 focus:outline-none">
                                     <option value="all">全年 (1~12月)</option>
-                                    <option value="01">1月</option>
-                                    <option value="02">2月</option>
-                                    <option value="03">3月</option>
-                                    <option value="04">4月</option>
-                                    <option value="05">5月</option>
-                                    <option value="06">6月</option>
-                                    <option value="07">7月</option>
-                                    <option value="08">8月</option>
-                                    <option value="09">9月</option>
-                                    <option value="10">10月</option>
-                                    <option value="11">11月</option>
-                                    <option value="12">12月</option>
+                                    <option value="01">1月</option><option value="02">2月</option><option value="03">3月</option>
+                                    <option value="04">4月</option><option value="05">5月</option><option value="06">6月</option>
+                                    <option value="07">7月</option><option value="08">8月</option><option value="09">9月</option>
+                                    <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
                                 </select>
                             </div>
                         </div>
@@ -191,6 +237,7 @@
                 </div>
             </div>
 
+            <!-- 輸入提示 Modal -->
             <div id="custom-prompt-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
                 <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-100 transform transition-all scale-95 duration-200" id="prompt-modal-box">
                     <div class="space-y-3">
@@ -204,7 +251,6 @@
                 </div>
             </div>
 
-            <!-- 同步按鈕區塊 -->
             <div class="bg-white p-3 md:p-4 rounded-2xl border border-slate-100 shadow-sm mb-6 flex flex-col sm:flex-row items-center justify-between gap-3 font-sans">
                 <div class="flex flex-row items-center gap-3 w-full sm:w-auto">
                     <div class="p-2 md:p-2.5 bg-indigo-50 text-indigo-600 rounded-xl text-lg md:text-xl shrink-0">🔄</div>
@@ -212,7 +258,7 @@
                         <h4 class="text-sm font-black text-slate-800 flex items-center gap-1.5">
                             <span>雙向雲端同步 (支援預覽)</span>
                         </h4>
-                        <p class="text-[11px] text-slate-400 mt-0.5">比對本機與 Google Sheet，讓您掌控上傳與下載內容。</p>
+                        <p class="text-[11px] text-slate-400 mt-0.5">比對本機與 Google Sheet，掌控上傳與下載內容。</p>
                     </div>
                 </div>
                 <button onclick="analyzeAndShowSyncDiff()" class="w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-indigo-600 hover:from-emerald-700 hover:to-indigo-700 text-white font-bold text-xs px-4 md:px-5 py-2.5 md:py-3 rounded-xl transition text-center shadow flex items-center justify-center space-x-1.5 shrink-0">
@@ -256,29 +302,21 @@
                     <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col">
                         <h3 class="font-bold text-slate-700 mb-4 flex items-center justify-between">
                             <span>🧁 本月支出分類比例</span>
-                            <span class="text-xs font-normal text-slate-400">依各個大類</span>
                         </h3>
-                        <div class="relative flex-1 flex items-center justify-center min-h-[300px]">
-                            <canvas id="expensePieChart"></canvas>
-                        </div>
+                        <div class="relative flex-1 flex items-center justify-center min-h-[300px]"><canvas id="expensePieChart"></canvas></div>
                     </div>
                     <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col">
                         <h3 class="font-bold text-slate-700 mb-4 flex items-center justify-between">
                             <span>📊 當月預算與實際支出對比</span>
-                            <span id="dash-compare-subtitle" class="text-xs font-normal text-slate-400">顯示當月大類相對差額</span>
                         </h3>
-                        <div class="relative flex-1 flex items-center justify-center min-h-[300px]">
-                            <canvas id="budgetCompareChart"></canvas>
-                        </div>
+                        <div class="relative flex-1 flex items-center justify-center min-h-[300px]"><canvas id="budgetCompareChart"></canvas></div>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 lg:col-span-1">
                         <h3 class="font-bold text-slate-700 mb-4">⚠️ 當月預算狀態警戒區</h3>
-                        <div id="dashboard-budget-alerts" class="space-y-3 max-h-[350px] overflow-y-auto no-scrollbar">
-                            <p class="text-sm text-slate-400">目前預算狀態良好，無超支項目！</p>
-                        </div>
+                        <div id="dashboard-budget-alerts" class="space-y-3 max-h-[350px] overflow-y-auto no-scrollbar"></div>
                     </div>
                     <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 lg:col-span-2 flex flex-col">
                         <div class="flex justify-between items-center mb-4">
@@ -289,11 +327,7 @@
                             <table class="w-full text-left text-sm whitespace-nowrap">
                                 <thead>
                                     <tr class="text-slate-400 border-b border-slate-100">
-                                        <th class="py-2">日期</th>
-                                        <th class="py-2">分類</th>
-                                        <th class="py-2">備註</th>
-                                        <th class="py-2">方式</th>
-                                        <th class="py-2 text-right">金額</th>
+                                        <th class="py-2">日期</th><th class="py-2">分類</th><th class="py-2">備註</th><th class="py-2 text-center">方式</th><th class="py-2 text-right">金額</th>
                                     </tr>
                                 </thead>
                                 <tbody id="dashboard-recent-transactions" class="divide-y divide-slate-50"></tbody>
@@ -305,10 +339,9 @@
 
             <section id="tab-transactions" class="space-y-6 tab-content hidden">
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    
                     <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 lg:col-span-1 h-fit flex flex-col space-y-4">
                         <div class="grid grid-cols-2 gap-1 bg-slate-100 p-1 rounded-xl">
-                            <button onclick="toggleInputMode('manual')" id="btn-mode-manual" class="py-1.5 rounded-lg text-xs font-bold transition shadow-sm bg-white text-emerald-800">✍️ 手陪輸入</button>
+                            <button onclick="toggleInputMode('manual')" id="btn-mode-manual" class="py-1.5 rounded-lg text-xs font-bold transition shadow-sm bg-white text-emerald-800">✍️ 手動輸入</button>
                             <button onclick="toggleInputMode('ai')" id="btn-mode-ai" class="py-1.5 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-800 flex items-center justify-center space-x-1"><span>🤖 AI 快速記帳</span></button>
                         </div>
 
@@ -341,8 +374,7 @@
                                     <div>
                                         <label class="block text-xs font-semibold text-slate-500 mb-1">支付方式</label>
                                         <select id="tx-pay-method" required class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                                            <option value="現金">現金支付</option>
-                                            <option value="信用卡">信用卡</option>
+                                            <option value="現金">現金支付</option><option value="信用卡">信用卡</option>
                                         </select>
                                     </div>
                                 </div>
@@ -358,20 +390,19 @@
                                 </div>
                                 <div class="flex space-x-2 pt-2">
                                     <button type="button" id="btn-cancel-edit" onclick="resetForm()" class="hidden flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 py-2.5 rounded-xl text-xs font-bold transition">取消編輯</button>
-                                    <button type="submit" class="flex-[2] bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-xs font-bold transition shadow-md shadow-emerald-100">儲存紀錄</button>
+                                    <button type="submit" class="flex-[2] bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-xs font-bold transition shadow-md">儲存紀錄</button>
                                 </div>
                             </form>
                         </div>
 
                         <div id="form-container-ai" class="hidden space-y-4">
                             <h3 class="font-bold text-slate-800 text-base flex items-center space-x-2"><span>🤖 AI 語意記帳</span></h3>
-                            <p class="text-xs text-slate-400 leading-relaxed">可以直接輸入日常口語對話，或是上傳發票/收據照片，AI 會自動為您多重歸類，並可於匯入前進行編輯修改！</p>
-                            
+                            <p class="text-xs text-slate-400 leading-relaxed">可以直接輸入日常口語對話，或是上傳發票照片，AI 會自動為您多重歸類！</p>
                             <div class="space-y-3">
                                 <div class="relative">
-                                    <textarea id="ai-raw-text" rows="5" placeholder="例如：7/2 中午跟同事去吃外食聚餐，我付了現金$450元。下午去全聯刷卡幫寶寶買了日用品花1200元..." class="w-full bg-slate-50 border border-slate-200 text-xs rounded-xl p-3 pb-12 focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-slate-300 leading-relaxed"></textarea>
+                                    <textarea id="ai-raw-text" rows="5" placeholder="例如：7/2 中午外食花了450元。下午去全聯刷卡買日用品花1200元..." class="w-full bg-slate-50 border border-slate-200 text-xs rounded-xl p-3 pb-12 focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-slate-300 leading-relaxed"></textarea>
                                     <div class="absolute bottom-2 right-2 flex space-x-2">
-                                        <label class="cursor-pointer px-3 py-1.5 bg-indigo-100 text-indigo-700 hover:bg-indigo-200 rounded-lg shadow-sm transition active:scale-95 flex items-center space-x-1" title="上傳檔案或收據照片">
+                                        <label class="cursor-pointer px-3 py-1.5 bg-indigo-100 text-indigo-700 hover:bg-indigo-200 rounded-lg shadow-sm transition active:scale-95 flex items-center space-x-1" title="上傳照片">
                                             <span>📸</span><span class="text-[10px] font-bold">照片/截圖</span>
                                             <input type="file" id="ai-image-upload" accept="image/*" class="hidden" onchange="handleAIImageUpload(event)">
                                         </label>
@@ -390,24 +421,34 @@
                             <div id="ai-preview-section" class="hidden pt-3 border-t border-slate-100 space-y-3">
                                 <h4 class="text-xs font-bold text-indigo-800 flex items-center justify-between">
                                     <div class="flex items-center space-x-2">
-                                        <input type="checkbox" id="ai-import-all" checked onchange="toggleAllAIImport(this.checked)" class="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer">
+                                        <input type="checkbox" id="ai-import-all" checked onchange="toggleAllCheckboxes('ai-import-chk', this.checked)" class="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer">
                                         <label for="ai-import-all" class="cursor-pointer">全選預覽列表</label>
                                     </div>
                                     <span id="ai-parsed-count" class="text-[10px] bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-full">0 筆</span>
                                 </h4>
                                 <div id="ai-parsed-items" class="max-h-[380px] overflow-y-auto space-y-3 no-scrollbar border border-slate-100 rounded-xl p-2 bg-slate-50/50"></div>
-                                <button onclick="importAIParsedTransactions()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-xs font-bold transition shadow-md flex items-center justify-center space-x-1.5">
-                                    <span>✨ 確認批次匯入選取帳目</span>
-                                </button>
+                                <div class="flex space-x-2">
+                                    <button onclick="cancelAIImport()" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 py-2.5 rounded-xl text-xs font-bold transition shadow-sm flex items-center justify-center">
+                                        <span>🚫 取消匯入</span>
+                                    </button>
+                                    <button onclick="importAIParsedTransactions()" class="flex-[2] bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-xs font-bold transition shadow-md flex items-center justify-center space-x-1.5">
+                                        <span>✨ 確認批次匯入選取帳目</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 lg:col-span-2 flex flex-col min-h-[450px]">
                         <div class="flex flex-col gap-4 pb-4 border-b border-slate-100 mb-4">
-                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                                <h3 class="font-bold text-slate-800 text-lg flex items-center space-x-2"><span>📋 收支歷史明細</span></h3>
-                                <div class="flex items-center space-x-2">
+                            <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+                                <h3 class="font-bold text-slate-800 text-lg flex items-center space-x-2 shrink-0"><span>📋 收支歷史明細</span></h3>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <button onclick="downloadTxTemplate()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold px-3 py-1.5 rounded-lg transition whitespace-nowrap shadow-sm">⬇️ 下載範本</button>
+                                    <label class="cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition shadow-sm flex items-center space-x-1 whitespace-nowrap">
+                                        <span>📥 匯入 Excel</span>
+                                        <input type="file" accept=".xlsx, .xls" class="hidden" onchange="importExcelTx(event)">
+                                    </label>
                                     <button onclick="openBatchDeleteTxModal()" class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold px-3 py-1.5 rounded-lg transition whitespace-nowrap shadow-sm">🗑️ 批次刪除</button>
                                     <button onclick="openConfirmModal('delete-all-tx')" class="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-3 py-1.5 rounded-lg transition whitespace-nowrap shadow-sm">🗑️ 刪除全部</button>
                                 </div>
@@ -428,13 +469,13 @@
                             <table class="w-full text-left text-sm whitespace-nowrap">
                                 <thead>
                                     <tr class="text-slate-400 border-b border-slate-100 bg-slate-50/50 cursor-pointer select-none">
-                                        <th onclick="sortTable('date')" class="py-3 px-4 hover:text-indigo-600 transition-colors">日期 <span id="sort-icon-date">▼</span></th>
-                                        <th onclick="sortTable('type')" class="py-3 px-4 hover:text-indigo-600 transition-colors">類型 <span id="sort-icon-type"></span></th>
-                                        <th onclick="sortTable('parentCat')" class="py-3 px-4 hover:text-indigo-600 transition-colors">大類 <span id="sort-icon-parentCat"></span></th>
-                                        <th onclick="sortTable('subCat')" class="py-3 px-4 hover:text-indigo-600 transition-colors">細項 <span id="sort-icon-subCat"></span></th>
-                                        <th onclick="sortTable('payMethod')" class="py-3 px-4 hover:text-indigo-600 transition-colors">支付方式 <span id="sort-icon-payMethod"></span></th>
-                                        <th onclick="sortTable('note')" class="py-3 px-4 hover:text-indigo-600 transition-colors">備註 <span id="sort-icon-note"></span></th>
-                                        <th onclick="sortTable('amount')" class="py-3 px-4 text-right hover:text-indigo-600 transition-colors">金額 <span id="sort-icon-amount"></span></th>
+                                        <th onclick="sortTable('date')" class="py-3 px-4 hover:text-indigo-600">日期 <span id="sort-icon-date">▼</span></th>
+                                        <th onclick="sortTable('type')" class="py-3 px-4 hover:text-indigo-600">類型 <span id="sort-icon-type"></span></th>
+                                        <th onclick="sortTable('parentCat')" class="py-3 px-4 hover:text-indigo-600">大類 <span id="sort-icon-parentCat"></span></th>
+                                        <th onclick="sortTable('subCat')" class="py-3 px-4 hover:text-indigo-600">細項 <span id="sort-icon-subCat"></span></th>
+                                        <th onclick="sortTable('payMethod')" class="py-3 px-4 hover:text-indigo-600">支付 <span id="sort-icon-payMethod"></span></th>
+                                        <th onclick="sortTable('note')" class="py-3 px-4 hover:text-indigo-600">備註 <span id="sort-icon-note"></span></th>
+                                        <th onclick="sortTable('amount')" class="py-3 px-4 text-right hover:text-indigo-600">金額 <span id="sort-icon-amount"></span></th>
                                         <th class="py-3 px-4 text-center">操作</th>
                                     </tr>
                                 </thead>
@@ -459,43 +500,43 @@
 
                     <!-- 月度預算規劃 -->
                     <div id="budget-view-monthly">
-                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-                            <div><h2 class="font-bold text-slate-800 text-xl flex items-center space-x-2"><span>🎯 月度預算規劃</span></h2></div>
-                            <div class="flex flex-wrap items-center gap-2 self-start md:self-auto">
+                        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4">
+                            <div class="flex items-center gap-3">
+                                <h2 class="font-bold text-slate-800 text-xl flex items-center space-x-2 shrink-0"><span>🎯 月度預算規劃</span></h2>
                                 <div class="flex items-center gap-2">
                                     <div class="flex items-center bg-slate-100 rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                                        <button onclick="navigateBudgetYear(-1)" class="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-400 hover:text-slate-600 transition active:scale-95 text-[10px] font-bold border-r border-slate-200">◀</button>
+                                        <button onclick="navigateBudgetYear(-1)" class="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-400 hover:text-slate-600 text-[10px] font-bold border-r border-slate-200">◀</button>
                                         <div class="flex items-center px-1">
                                             <select id="budget-year-select" onchange="handleBudgetPeriodChange()" class="bg-transparent text-sm font-black text-slate-700 focus:outline-none cursor-pointer text-center appearance-none pl-2"></select>
                                             <span class="text-slate-500 font-bold text-xs pointer-events-none pr-2">年</span>
                                         </div>
-                                        <button onclick="navigateBudgetYear(1)" class="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-400 hover:text-slate-600 transition active:scale-95 text-[10px] font-bold border-l border-slate-200">▶</button>
+                                        <button onclick="navigateBudgetYear(1)" class="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-400 hover:text-slate-600 text-[10px] font-bold border-l border-slate-200">▶</button>
                                     </div>
                                     <div class="flex items-center bg-slate-100 rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                                        <button onclick="navigateBudgetMonth(-1)" class="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-400 hover:text-slate-600 transition active:scale-95 text-[10px] font-bold border-r border-slate-200">◀</button>
+                                        <button onclick="navigateBudgetMonth(-1)" class="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-400 hover:text-slate-600 text-[10px] font-bold border-r border-slate-200">◀</button>
                                         <div class="flex items-center px-1">
                                             <select id="budget-month-select" onchange="handleBudgetPeriodChange()" class="bg-transparent text-sm font-black text-slate-700 focus:outline-none cursor-pointer text-center appearance-none pl-2"></select>
                                             <span class="text-slate-500 font-bold text-xs pointer-events-none pr-2">月</span>
                                         </div>
-                                        <button onclick="navigateBudgetMonth(1)" class="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-400 hover:text-slate-600 transition active:scale-95 text-[10px] font-bold border-l border-slate-200">▶</button>
+                                        <button onclick="navigateBudgetMonth(1)" class="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-400 hover:text-slate-600 text-[10px] font-bold border-l border-slate-200">▶</button>
                                     </div>
                                 </div>
-                                <button type="button" onclick="openAdvBudgetCopyModal()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold px-3 py-1.5 rounded-xl transition flex items-center space-x-1 shadow-sm whitespace-nowrap"><span>📋 複製預算</span></button>
-                                <button type="button" onclick="openConfirmModal('clear-current-year-budget')" class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold px-3 py-1.5 rounded-xl transition flex items-center space-x-1 shadow-sm whitespace-nowrap"><span>🗑️ 刪除當年</span></button>
-                                <button type="button" onclick="openConfirmModal('clear-current-budget')" class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold px-3 py-1.5 rounded-xl transition flex items-center space-x-1 shadow-sm whitespace-nowrap"><span>🗑️ 清除當月</span></button>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <button onclick="downloadBgTemplate()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold px-3 py-1.5 rounded-xl transition shadow-sm whitespace-nowrap">⬇️ 下載範本</button>
+                                <label class="cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition shadow-sm flex items-center space-x-1 whitespace-nowrap">
+                                    <span>📥 匯入 Excel</span>
+                                    <input type="file" accept=".xlsx, .xls" class="hidden" onchange="importExcelBg(event)">
+                                </label>
+                                <button type="button" onclick="openConfirmModal('clear-current-year-budget')" class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold px-3 py-1.5 rounded-xl transition shadow-sm whitespace-nowrap">🗑️ 刪除當年</button>
+                                <button type="button" onclick="openConfirmModal('clear-current-budget')" class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold px-3 py-1.5 rounded-xl transition shadow-sm whitespace-nowrap">🗑️ 清除當月</button>
                             </div>
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100 mb-6">
-                            <div class="flex items-center justify-between p-2.5 bg-white/80 rounded-xl shadow-sm border border-slate-100">
-                                <span class="text-xs font-bold text-slate-600">💵 當月總收入目標</span><span id="budget-total-income" class="text-sm font-black text-emerald-600">NT$ 0</span>
-                            </div>
-                            <div class="flex items-center justify-between p-2.5 bg-white/80 rounded-xl shadow-sm border border-slate-100">
-                                <span class="text-xs font-bold text-slate-600">📉 當月總支出預算</span><span id="budget-total-expense" class="text-sm font-black text-rose-600">NT$ 0</span>
-                            </div>
-                            <div class="flex items-center justify-between p-2.5 bg-white/80 rounded-xl shadow-sm border border-slate-100">
-                                <span class="text-xs font-bold text-slate-600">⚖️ 當月預估現金流</span><span id="budget-net-flow" class="text-sm font-black text-blue-600">NT$ 0</span>
-                            </div>
+                            <div class="flex items-center justify-between p-2.5 bg-white/80 rounded-xl shadow-sm border border-slate-100"><span class="text-xs font-bold text-slate-600">💵 當月總收入目標</span><span id="budget-total-income" class="text-sm font-black text-emerald-600">NT$ 0</span></div>
+                            <div class="flex items-center justify-between p-2.5 bg-white/80 rounded-xl shadow-sm border border-slate-100"><span class="text-xs font-bold text-slate-600">📉 當月總支出預算</span><span id="budget-total-expense" class="text-sm font-black text-rose-600">NT$ 0</span></div>
+                            <div class="flex items-center justify-between p-2.5 bg-white/80 rounded-xl shadow-sm border border-slate-100"><span class="text-xs font-bold text-slate-600">⚖️ 當月預估現金流</span><span id="budget-net-flow" class="text-sm font-black text-blue-600">NT$ 0</span></div>
                         </div>
 
                         <div class="grid grid-cols-2 gap-1 bg-slate-100 p-1 rounded-xl mb-4 max-w-sm mx-auto">
@@ -504,8 +545,7 @@
                         </div>
 
                         <div class="hidden md:flex justify-between items-center px-4 mb-3 text-[11px] font-semibold text-slate-400 border-b border-slate-100 pb-2">
-                            <span>分類項目名稱</span>
-                            <div class="flex space-x-8 lg:space-x-16 pr-2"><span>去年同期額度</span><span class="pr-2">今年編列額度</span></div>
+                            <span>分類項目名稱</span><div class="flex space-x-8 lg:space-x-16 pr-2"><span>去年同期額度</span><span class="pr-2">今年編列額度</span></div>
                         </div>
 
                         <div>
@@ -514,7 +554,7 @@
                         </div>
 
                         <div class="flex justify-end pt-6 mt-6 border-t border-slate-100">
-                            <button id="btn-save-budget" onclick="saveAllBudgets()" class="bg-slate-200 text-slate-400 font-bold text-sm px-6 py-2.5 rounded-xl cursor-not-allowed shadow-none" disabled>🟢 預算已儲存 (最新狀態)</button>
+                            <button id="btn-save-budget" onclick="saveAllBudgets()" class="bg-slate-200 text-slate-400 font-bold text-sm px-6 py-2.5 rounded-xl cursor-not-allowed shadow-none" disabled>🟢 預算已儲存</button>
                         </div>
                     </div>
 
@@ -523,27 +563,19 @@
                         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 border-b border-slate-100 pb-4">
                             <h2 class="font-bold text-slate-800 text-xl flex items-center space-x-2"><span>📅 年度預算總覽</span></h2>
                             <div class="flex items-center bg-slate-100 rounded-xl border border-slate-200 shadow-sm overflow-hidden w-fit">
-                                <button onclick="navigateAnnualYear(-1)" class="px-3 py-2 bg-white hover:bg-slate-50 text-slate-400 hover:text-slate-600 transition active:scale-95 text-xs font-bold border-r border-slate-200">◀</button>
+                                <button onclick="navigateAnnualYear(-1)" class="px-3 py-2 bg-white hover:bg-slate-50 text-slate-400 text-xs font-bold border-r border-slate-200">◀</button>
                                 <div class="flex items-center px-2">
-                                    <select id="annual-year-select" onchange="renderAnnualBudget()" class="bg-transparent text-sm font-black text-slate-700 focus:outline-none cursor-pointer text-center appearance-none pl-2"></select>
+                                    <select id="annual-year-select" onchange="renderAnnualBudget()" class="bg-transparent text-sm font-black text-slate-700 focus:outline-none cursor-pointer pl-2"></select>
                                     <span class="text-slate-500 font-bold text-xs pointer-events-none pr-2">年度</span>
                                 </div>
-                                <button onclick="navigateAnnualYear(1)" class="px-3 py-2 bg-white hover:bg-slate-50 text-slate-400 hover:text-slate-600 transition active:scale-95 text-xs font-bold border-l border-slate-200">▶</button>
+                                <button onclick="navigateAnnualYear(1)" class="px-3 py-2 bg-white hover:bg-slate-50 text-slate-400 text-xs font-bold border-l border-slate-200">▶</button>
                             </div>
                         </div>
-
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                            <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-100 text-center">
-                                <p class="text-xs text-emerald-800 font-bold mb-1">當年總收入預算累計</p><p id="annual-total-inc" class="text-xl font-black text-emerald-600">NT$ 0</p>
-                            </div>
-                            <div class="bg-rose-50 p-4 rounded-xl border border-rose-100 text-center">
-                                <p class="text-xs text-rose-800 font-bold mb-1">當年總支出預算累計</p><p id="annual-total-exp" class="text-xl font-black text-rose-600">NT$ 0</p>
-                            </div>
-                            <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 text-center">
-                                <p class="text-xs text-blue-800 font-bold mb-1">當年預估現金流</p><p id="annual-total-net" class="text-xl font-black text-blue-600">NT$ 0</p>
-                            </div>
+                            <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-100 text-center"><p class="text-xs text-emerald-800 font-bold mb-1">當年總收入預算</p><p id="annual-total-inc" class="text-xl font-black text-emerald-600">NT$ 0</p></div>
+                            <div class="bg-rose-50 p-4 rounded-xl border border-rose-100 text-center"><p class="text-xs text-rose-800 font-bold mb-1">當年總支出預算</p><p id="annual-total-exp" class="text-xl font-black text-rose-600">NT$ 0</p></div>
+                            <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 text-center"><p class="text-xs text-blue-800 font-bold mb-1">預估現金流</p><p id="annual-total-net" class="text-xl font-black text-blue-600">NT$ 0</p></div>
                         </div>
-
                         <div class="overflow-x-auto border border-slate-200 rounded-xl bg-white shadow-sm">
                             <table class="w-full text-left text-sm whitespace-nowrap">
                                 <thead>
@@ -575,10 +607,10 @@
                 </div>
 
                 <div class="flex flex-col md:flex-row md:items-center justify-between bg-emerald-50 p-4 rounded-2xl border border-emerald-100 gap-4">
-                    <span class="text-xs text-emerald-800 font-medium leading-relaxed">✨ 報表已排版，可匯出 PDF 或新版年度 CSV 檔案！</span>
+                    <span class="text-xs text-emerald-800 font-medium leading-relaxed">✨ 報表已排版，可匯出 PDF 或匯出 Excel 備份！</span>
                     <div class="flex space-x-2 overflow-x-auto">
-                        <button onclick="exportToCSV()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition flex items-center space-x-1.5 shadow shadow-indigo-100 shrink-0"><span>📊 匯出數據CSV檔</span></button>
-                        <button onclick="exportToPDF()" class="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition flex items-center space-x-1.5 shadow shadow-rose-100 shrink-0"><span>📥 匯出收支PDF</span></button>
+                        <button onclick="exportToExcel()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition flex items-center space-x-1.5 shadow shrink-0"><span>📊 匯出數據Excel檔</span></button>
+                        <button onclick="exportToPDF()" class="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition flex items-center space-x-1.5 shadow shrink-0"><span>📥 匯出收支PDF</span></button>
                     </div>
                 </div>
 
@@ -587,7 +619,6 @@
                         <h1 class="text-xl md:text-2xl font-black text-slate-800 tracking-wider">御守金 · 家庭收支報告</h1>
                         <p class="text-xs md:text-sm text-slate-500 font-medium" id="report-period-text">報告區間：載入中...</p>
                     </div>
-
                     <div class="space-y-3 pdf-section">
                         <h2 class="text-xs md:text-sm font-bold text-slate-800 border-l-4 border-emerald-600 pl-2">一、 財務核心總覽</h2>
                         <div class="grid grid-cols-3 gap-3 text-center">
@@ -596,7 +627,6 @@
                             <div class="p-3 bg-slate-50 rounded-xl"><p class="text-[10px] text-slate-500">結餘儲蓄</p><p id="rep-summary-net" class="text-sm md:text-lg font-bold text-blue-600">NT$ 0</p></div>
                         </div>
                     </div>
-
                     <div class="space-y-4">
                         <h2 class="text-xs md:text-sm font-bold text-slate-800 border-l-4 border-emerald-600 pl-2">二、 財務結構與分配</h2>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pdf-grid-force pdf-section">
@@ -608,7 +638,6 @@
                             <div class="border border-slate-100 p-4 rounded-xl flex flex-col items-center bg-white shadow-sm min-h-[280px] justify-center"><h4 class="text-[11px] font-extrabold text-slate-600 mb-2">📈 區間目標與實際收入對比</h4><div class="w-full h-56 relative flex items-center justify-center"><canvas id="reportIncomeBarChart"></canvas></div></div>
                         </div>
                     </div>
-
                     <div class="space-y-4 pdf-section">
                         <h2 class="text-xs md:text-sm font-bold text-slate-800 border-l-4 border-emerald-600 pl-2">三、 各類區間預算目標達成率</h2>
                         <div class="overflow-x-auto">
@@ -618,7 +647,6 @@
                             </table>
                         </div>
                     </div>
-
                     <div class="space-y-4 pdf-section">
                         <h2 class="text-xs md:text-sm font-bold text-slate-800 border-l-4 border-emerald-600 pl-2">四、 大額支出排行榜 (前五筆)</h2>
                         <div class="overflow-x-auto">
@@ -628,7 +656,6 @@
                             </table>
                         </div>
                     </div>
-
                     <div class="pt-8 border-t border-slate-200 flex flex-col md:flex-row justify-between text-xs text-slate-400 gap-6 pdf-section">
                         <div class="flex-1 space-y-2"><p class="font-bold text-slate-500">結論：</p><p class="mt-1 leading-relaxed" id="report-ai-insight"></p></div>
                     </div>
@@ -667,69 +694,67 @@
                     <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
                         <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-1.5"><span>🔑 雲端與金鑰設定</span></h3>
                         <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                            
-                            <!-- Gemini API 金鑰區塊 -->
                             <div>
                                 <label class="block text-xs font-bold text-slate-600 mb-1">Gemini API 金鑰：</label>
                                 <div class="relative mb-2">
-                                    <input type="password" id="cfg-gemini-key" class="w-full bg-white border border-slate-200 text-xs rounded-lg pl-3 pr-10 py-2 focus:outline-none font-mono" placeholder="在此貼上您的 API 金鑰...">
+                                    <input type="password" id="cfg-gemini-key" class="w-full bg-white border border-slate-200 text-xs rounded-lg pl-3 pr-10 py-2 focus:outline-none font-mono">
                                     <button type="button" onclick="togglePasswordVisibility('cfg-gemini-key', 'eye-gemini')" class="absolute right-2.5 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 transition"><span id="eye-gemini">👁️</span></button>
                                 </div>
-                                
-                                <details class="bg-blue-50/70 border border-blue-200 rounded-xl p-3 text-xs text-slate-600 cursor-pointer group shadow-sm">
-                                    <summary class="font-bold text-blue-800 flex items-center justify-between outline-none select-none list-none">
-                                        <span class="flex items-center space-x-1"><span>💡 如何免費取得 Gemini API 金鑰？</span></span>
+                                <details class="bg-indigo-50/50 border border-indigo-100 rounded-xl p-3 text-xs text-slate-600 cursor-pointer group mt-2">
+                                    <summary class="font-bold text-indigo-900 flex items-center justify-between outline-none select-none list-none">
+                                        <span class="flex items-center space-x-1"><span>💡 如何取得 Gemini API 金鑰？</span></span>
                                         <span class="transition-transform duration-200 group-open:rotate-180 text-[10px]">▼</span>
                                     </summary>
-                                    <div class="mt-3 space-y-2 cursor-default leading-relaxed text-slate-600" onclick="event.stopPropagation()">
-                                        <p>1. 點擊前往 <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-bold transition">Google AI Studio 網站 🔗</a> 並登入 Google 帳號。</p>
-                                        <p>2. 點擊畫面上藍色的 <strong>「Create API Key」</strong> 按鈕。</p>
-                                        <p>3. 在彈出視窗中，點選 <strong>「Create API key in new project」</strong>。</p>
-                                        <p>4. 複製產生的一長串英文與數字，貼到上方的輸入框中即可！</p>
-                                        <div class="bg-white p-2.5 rounded-lg border border-blue-100 mt-2 text-[10px] text-blue-800 shadow-inner">
-                                            🛡️ <b>隱私與安全提示：</b> 您的金鑰只會保存在您當前設備的瀏覽器中。AI 記帳功能是從您的瀏覽器直接向 Google 伺服器發送請求，本系統絕對不會、也無法攔截收集您的金鑰或財務資訊。
-                                        </div>
+                                    <div class="mt-3 space-y-2 cursor-default leading-relaxed pl-1" onclick="event.stopPropagation()">
+                                        <ol class="list-decimal pl-4 space-y-1">
+                                            <li>前往 <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-indigo-600 font-bold hover:underline">Google AI Studio</a> 並登入您的 Google 帳號。</li>
+                                            <li>點擊畫面左側選單的 <strong>Get API key</strong>。</li>
+                                            <li>點擊畫面中的 <strong>Create API key</strong> 按鈕。</li>
+                                            <li>選擇 <strong>Create API key in new project</strong> 即可免費生成。</li>
+                                            <li>複製以 <code>AIza</code> 開頭的長串金鑰，並貼入上方的輸入框中儲存即可。</li>
+                                        </ol>
                                     </div>
                                 </details>
                             </div>
-                            
                             <hr class="border-slate-200 my-2">
-                            
-                            <!-- GAS 區塊 -->
                             <div>
                                 <label class="block text-xs font-bold text-slate-600 mb-1">Google Apps Script Web App 網址：</label>
                                 <div class="relative mb-2">
                                     <input type="password" id="cfg-gas-url" class="w-full bg-white border border-slate-200 text-xs rounded-lg pl-3 pr-10 py-2 focus:outline-none font-mono">
                                     <button type="button" onclick="togglePasswordVisibility('cfg-gas-url', 'eye-url')" class="absolute right-2.5 top-1/2 transform -translate-y-1/2 text-slate-400"><span id="eye-url">👁️</span></button>
                                 </div>
-                                
-                                <details class="bg-indigo-50/70 border border-indigo-100 rounded-xl p-3 text-xs text-slate-600 cursor-pointer group">
+                                <details class="bg-indigo-50/70 border border-indigo-100 rounded-xl p-3 text-xs text-slate-600 cursor-pointer group mt-2">
                                     <summary class="font-bold text-indigo-950 flex items-center justify-between outline-none select-none list-none">
-                                        <span class="flex items-center space-x-1"><span class="text-rose-600 animate-pulse mr-1">🔥支援預覽同步的全新架構</span><span>💡 建立 GAS 雲端同步</span></span>
+                                        <span class="flex items-center space-x-1"><span class="text-rose-600 mr-1">🔥</span><span>💡 如何部署並取得 GAS 網址？ (含同步程式碼)</span></span>
                                         <span class="transition-transform duration-200 group-open:rotate-180 text-[10px]">▼</span>
                                     </summary>
-                                    <div class="mt-3 space-y-3 cursor-default" onclick="event.stopPropagation()">
-                                        <div class="bg-amber-50 border border-amber-200 p-2 rounded text-[10px] text-amber-800 font-bold">
-                                            ⚠️ 重要更新：為支援「同步前預覽確認」功能，請務必重新複製下方代碼貼回 GAS 並<span class="text-rose-600 underline">部署新版本</span>！
-                                        </div>
-                                        <div class="relative mt-2">
-                                            <textarea id="gas-code-box" readonly class="w-full h-32 bg-slate-900 text-slate-100 font-mono text-[10px] p-2.5 rounded-lg focus:outline-none select-all">// Google Apps Script 同步預覽版 (支援1~12月)
+                                    <div class="mt-3 space-y-2 cursor-default leading-relaxed pl-1" onclick="event.stopPropagation()">
+                                        <ol class="list-decimal pl-4 space-y-1 font-medium">
+                                            <li>建立一個新的 Google 試算表，點選頂端選單的「<strong>擴充功能</strong>」>「<strong>Apps Script</strong>」。</li>
+                                            <li>將下方黑底白字的程式碼<strong>完整複製</strong>，並完全取代編輯器內原本的所有內容。</li>
+                                            <li>修改程式碼第一行的 <code>ACCESS_PASSWORD</code>，設定您專屬的同步密碼。</li>
+                                            <li>點選右上角的藍色按鈕「<strong>部署</strong>」>「<strong>新增部署作業</strong>」。</li>
+                                            <li>點選左側「⚙️」齒輪圖示，選擇「<strong>網頁應用程式 (Web App)</strong>」。</li>
+                                            <li>設定「執行身分」為「我」，「誰可以存取」選擇「所有人」，然後點擊部署。</li>
+                                            <li>出現授權提示時，完成 Google 帳號授權 (若遇安全警告請點選 左下角進階 > 前往)。</li>
+                                            <li>成功後，複製畫面上的「<strong>網頁應用程式網址</strong>」，貼入上方欄位即可。</li>
+                                        </ol>
+                                        <div class="relative mt-3">
+                                            <textarea id="gas-code-box" readonly class="w-full h-32 bg-slate-900 text-slate-100 font-mono text-[10px] p-2.5 rounded-lg focus:outline-none select-all">// Google Apps Script 同步預覽短ID版 (2026-07-11最新置左版)
 const ACCESS_PASSWORD = "請設定您的密碼"; 
+const rId = () => Math.random().toString(36).substring(2, 8);
 function onEdit(e) {
   if (!e || !e.range) return;
-  const sheet = e.source.getActiveSheet();
-  const sheetName = sheet.getName();
-  if (sheetName !== "Transactions" && sheetName !== "Budgets") return;
-  const row = e.range.getRow();
-  if (row <= 1) return;
+  const sheet = e.source.getActiveSheet(), sheetName = sheet.getName(), row = e.range.getRow();
+  if ((sheetName !== "Transactions" && sheetName !== "Budgets") || row <= 1) return;
   const timestampCol = sheetName === "Transactions" ? 9 : 19;
   sheet.getRange(row, timestampCol).setValue(Date.now());
   const idCell = sheet.getRange(row, 1);
   if (!idCell.getValue()) {
-    if (sheetName === "Transactions") idCell.setValue("tx-c-" + Date.now() + "-" + Math.floor(Math.random()*1000));
+    if (sheetName === "Transactions") idCell.setValue("tx-" + rId() + "-" + rId());
     else if (sheetName === "Budgets") {
       const year = sheet.getRange(row, 2).getValue(), typeStr = sheet.getRange(row, 3).getValue(), parent = sheet.getRange(row, 4).getValue(), sub = sheet.getRange(row, 5).getValue();
-      if (year && parent && sub) idCell.setValue("bg-" + year + "-" + (typeStr === '收入' ? 'income' : 'expense') + "-" + parent + "-" + sub);
+      if (year && parent && sub) idCell.setValue("bg-" + rId() + "-" + rId());
     }
   }
 }
@@ -742,16 +767,27 @@ function doPost(e) {
     if (action === "test") return responseJSON({ status: "success", message: "連線成功" });
     if (action === "fetchCloudData") return responseJSON({ status: "success", data: getCloudData(sp) });
     if (action === "overwriteCloudData") { overwriteAllData(sp, data.transactions, data.budgets); return responseJSON({ status: "success", message: "覆寫完成" }); }
-    if (action === "clearAll") { clearAllData(sp); return responseJSON({ status: "success", message: "資料清空" }); }
-    return responseJSON({ status: "error", message: "未知的 action" });
+    return responseJSON({ status: "error", message: "未知 action" });
   } catch (err) { return responseJSON({ status: "error", message: err.toString() }); }
 }
 function responseJSON(obj) { return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON); }
 function ensureSheetsCreated(sp) {
-  let tSheet = sp.getSheetByName("Transactions"); if (!tSheet) { tSheet = sp.insertSheet("Transactions"); tSheet.appendRow(["收支ID","日期","類型","大類","細項","金額","支付方式","備註","修改時間"]); tSheet.getRange(1, 1, 1, 9).setFontWeight("bold"); }
-  let bSheet = sp.getSheetByName("Budgets"); if (!bSheet) { bSheet = sp.insertSheet("Budgets"); bSheet.appendRow(["預算ID","年分","類型","大類","細項","1月預算金額","2月預算金額","3月預算金額","4月預算金額","5月預算金額","6月預算金額","7月預算金額","8月預算金額","9月預算金額","10月預算金額","11月預算金額","12月預算金額","備註","修改時間"]); bSheet.getRange(1, 1, 1, 19).setFontWeight("bold"); }
+  let tSheet = sp.getSheetByName("Transactions"); 
+  if (!tSheet) { 
+    tSheet = sp.insertSheet("Transactions"); 
+    tSheet.appendRow(["收支ID","日期","類型","大類","細項","支付方式","金額","備註","修改時間"]); 
+    tSheet.getRange(1, 1, 1, 9).setFontWeight("bold"); 
+  }
+  tSheet.getRange("B:B").setHorizontalAlignment("left"); // 確保日期欄位置左
+  
+  let bSheet = sp.getSheetByName("Budgets"); 
+  if (!bSheet) { 
+    bSheet = sp.insertSheet("Budgets"); 
+    bSheet.appendRow(["預算ID","年分","類型","大類","細項","1月預算金額","2月預算金額","3月預算金額","4月預算金額","5月預算金額","6月預算金額","7月預算金額","8月預算金額","9月預算金額","10月預算金額","11月預算金額","12月預算金額","備註","修改時間"]); 
+    bSheet.getRange(1, 1, 1, 19).setFontWeight("bold"); 
+  }
+  bSheet.getRange("B:B").setHorizontalAlignment("left").setNumberFormat("@"); // 確保年分欄位置左純文字
 }
-function clearAllData(sp) { let t = sp.getSheetByName("Transactions"); if (t) { t.clear(); t.appendRow(["收支ID","日期","類型","大類","細項","金額","支付方式","備註","修改時間"]); } let b = sp.getSheetByName("Budgets"); if (b) { b.clear(); b.appendRow(["預算ID","年分","類型","大類","細項","1月預算金額","2月預算金額","3月預算金額","4月預算金額","5月預算金額","6月預算金額","7月預算金額","8月預算金額","9月預算金額","10月預算金額","11月預算金額","12月預算金額","備註","修改時間"]); } }
 function formatToYMD(val) {
   if (val instanceof Date) return val.getFullYear() + "-" + ("0" + (val.getMonth() + 1)).slice(-2) + "-" + ("0" + val.getDate()).slice(-2);
   if (typeof val === 'string') { var m = val.match(/(\d{4})[-/](\d{1,2})[-/](\d{1,2})/); if (m) return m[1] + "-" + ("0" + m[2]).slice(-2) + "-" + ("0" + m[3]).slice(-2); }
@@ -763,7 +799,7 @@ function getCloudData(sp) {
   for (let i = 1; i < cTxRows.length; i++) {
     let r = cTxRows[i], id = r[0] ? r[0].toString().trim() : ""; if (!id) continue;
     let uT = parseInt(r[8], 10); if (isNaN(uT) || !uT) uT = Date.now();
-    cTxList.push({ id: id, date: formatToYMD(r[1]), type: r[2].toString().trim(), parentCat: r[3].toString().trim(), subCat: r[4].toString().trim(), amount: parseFloat(r[5])||0, payMethod: r[6]?r[6].toString().trim():'現金', note: r[7]?r[7].toString().trim():'', updatedAt: uT });
+    cTxList.push({ id: id, date: formatToYMD(r[1]), type: r[2].toString().trim()==='收入'?'income':'expense', parentCat: r[3].toString().trim(), subCat: r[4].toString().trim(), payMethod: r[5]?r[5].toString().trim():'現金', amount: parseFloat(r[6])||0, note: r[7]?r[7].toString().trim():'', updatedAt: uT });
   }
   const cBgRows = bSheet.getDataRange().getValues();
   for (let i = 1; i < cBgRows.length; i++) {
@@ -774,15 +810,21 @@ function getCloudData(sp) {
   return { transactions: cTxList, budgets: cBgList };
 }
 function overwriteAllData(sp, txList, bgList) {
-  let tSheet = sp.getSheetByName("Transactions"); tSheet.clear(); tSheet.appendRow(["收支ID","日期","類型","大類","細項","金額","支付方式","備註","修改時間"]); tSheet.getRange(1, 1, 1, 9).setFontWeight("bold");
+  let tSheet = sp.getSheetByName("Transactions"); tSheet.clear(); tSheet.appendRow(["收支ID","日期","類型","大類","細項","支付方式","金額","備註","修改時間"]); tSheet.getRange(1, 1, 1, 9).setFontWeight("bold");
   if (txList && txList.length > 0) {
-    var wTxRows = txList.map(t => [t.id, formatToYMD(t.date), t.type, t.parentCat, t.subCat, t.amount, t.payMethod || '現金', t.note, t.updatedAt]);
-    tSheet.getRange(2, 1, wTxRows.length, 9).setValues(wTxRows); tSheet.getRange(2, 2, wTxRows.length, 1).setNumberFormat("yyyy-mm-dd"); tSheet.getRange(2, 6, wTxRows.length, 1).setNumberFormat("#,##0"); tSheet.getRange(2, 9, wTxRows.length, 1).setNumberFormat("0");
+    var wTxRows = txList.map(t => [t.id, formatToYMD(t.date), t.type==='income'?'收入':'支出', t.parentCat, t.subCat, t.payMethod || '現金', t.amount, t.note, t.updatedAt]);
+    tSheet.getRange(2, 1, wTxRows.length, 9).setValues(wTxRows); 
+    tSheet.getRange(2, 2, wTxRows.length, 1).setNumberFormat("yyyy-mm-dd").setHorizontalAlignment("left"); 
+    tSheet.getRange(2, 7, wTxRows.length, 1).setNumberFormat("#,##0"); 
+    tSheet.getRange(2, 9, wTxRows.length, 1).setNumberFormat("0");
   }
   let bSheet = sp.getSheetByName("Budgets"); bSheet.clear(); bSheet.appendRow(["預算ID","年分","類型","大類","細項","1月預算金額","2月預算金額","3月預算金額","4月預算金額","5月預算金額","6月預算金額","7月預算金額","8月預算金額","9月預算金額","10月預算金額","11月預算金額","12月預算金額","備註","修改時間"]); bSheet.getRange(1, 1, 1, 19).setFontWeight("bold");
+  bSheet.getRange("B:B").setHorizontalAlignment("left").setNumberFormat("@");
   if (bgList && bgList.length > 0) {
     var wBgRows = bgList.map(b => [b.id, b.year, b.type==='income'?'收入':'支出', b.parentCat, b.subCat, b.amounts['01'], b.amounts['02'], b.amounts['03'], b.amounts['04'], b.amounts['05'], b.amounts['06'], b.amounts['07'], b.amounts['08'], b.amounts['09'], b.amounts['10'], b.amounts['11'], b.amounts['12'], b.note||"", b.updatedAt]);
-    bSheet.getRange(2, 1, wBgRows.length, 19).setValues(wBgRows); bSheet.getRange(2, 6, wBgRows.length, 12).setNumberFormat("#,##0"); bSheet.getRange(2, 19, wBgRows.length, 1).setNumberFormat("0");
+    bSheet.getRange(2, 1, wBgRows.length, 19).setValues(wBgRows); 
+    bSheet.getRange(2, 6, wBgRows.length, 12).setNumberFormat("#,##0"); 
+    bSheet.getRange(2, 19, wBgRows.length, 1).setNumberFormat("0");
   }
 }</textarea>
                                         </div>
@@ -806,7 +848,6 @@ function overwriteAllData(sp, txList, bgList) {
                                 <button onclick="testGoogleSheetSync()" class="flex-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs py-2 rounded-lg transition border border-indigo-200">🔄 測試連線</button>
                             </div>
                         </div>
-
                         <div class="mt-8 border-t border-slate-200 pt-6">
                             <h3 class="font-bold text-rose-700 text-sm flex items-center space-x-1.5 mb-2"><span>⚠️ 危險操作區</span></h3>
                             <button onclick="openConfirmModal('factory-reset')" class="w-full bg-white border border-rose-300 text-rose-600 hover:bg-rose-50 font-bold text-xs px-4 py-2.5 rounded-xl transition shadow-sm flex justify-center items-center space-x-2">
@@ -819,10 +860,6 @@ function overwriteAllData(sp, txList, bgList) {
         </main>
     </div>
 
-    <footer class="bg-slate-800 text-slate-400 py-6 border-t border-slate-700 mt-auto text-xs text-center">
-        <p>© 2026 御守金 - 家庭收支紀錄 — 掌握你的現金流</p>
-    </footer>
-
     <script>
         const CATEGORY_MAP = {
             expense: {
@@ -831,11 +868,11 @@ function overwriteAllData(sp, txList, bgList) {
                 "醫療": ["健保醫療", "自費醫療"], "交通運輸": ["大眾運輸", "智慧卡儲值", "汽機車油錢", "汽機車停車", "汽機車維護", "汽機車保險", "汽機車稅金"],
                 "居住": ["房屋租金", "房屋貸款", "房屋修繕", "居家用品維修", "大樓管理費", "房屋稅金"], "水電通訊": ["水", "電", "瓦斯", "電信", "寬頻網路", "有線電視"],
                 "育兒": ["保母費", "嬰幼兒伙食", "嬰幼兒日用品"], "家庭": ["零用錢", "孝親費", "父母照護費"], "保險與退休": ["人壽保險", "公保", "健保", "退撫基金"],
-                "稅務": ["綜合所得稅"], "投資": ["國外投資雜費", "投資手續費"], "其他": ["公務代墊", "國旅卡代墊", "寵物", "雜費", "其他未分類支出"]
+                "稅務": ["綜合所得稅"], "投資": ["國外投資雜費", "投資手續費"], "其他支出": ["公務代墊", "國旅卡代墊", "寵物", "雜費", "未分類支出"]
             },
             income: {
                 "工作收入": ["薪資", "加班費", "差旅費"], "獎金": ["年終獎金", "考績獎金", "不休假獎金", "公司禮金"], "補助": ["國旅卡補助", "公保補助", "國家補助"],
-                "投資收益": ["活存利息", "定存利息", "股票配息", "投資獲利"], "租賃收入": ["租金收入"], "其他收入": ["現金回饋", "保險理賠金", "中獎獎金", "拍賣收入", "退款", "退稅", "代墊收入", "贊助還款", "其他收入"]
+                "投資收益": ["活存利息", "定存利息", "股票配息", "投資獲利"], "租賃收入": ["租金收入"], "其他收入": ["現金回饋", "保險理賠金", "中獎獎金", "拍賣收入", "退款", "退稅", "代墊收入", "贊助還款", "未分類收入"]
             }
         };
 
@@ -855,8 +892,11 @@ function overwriteAllData(sp, txList, bgList) {
         let activeMgrType = 'expense', activeMgrParent = '', collapsedCategories = {};
         let aiImageBase64 = null, aiImageMimeType = null;
         
-        let pendingSyncDiffs = []; // 儲存預覽的差異清單
-        let pendingCloudData = null; // 暫存雲端抓回來的資料
+        let pendingSyncDiffs = [];
+        let pendingCloudData = null;
+        let pendingImportTxList = [];
+        let pendingImportBgList = [];
+        const shortId = () => Math.random().toString(36).substring(2, 8);
 
         function cleanDateToYMD(dateStr) {
             if (!dateStr) return "";
@@ -864,39 +904,65 @@ function overwriteAllData(sp, txList, bgList) {
             return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
         }
 
+        function migrateLegacyCategories() {
+            let changed = false;
+            if (categoryMap.expense && categoryMap.expense['其他']) {
+                categoryMap.expense['其他支出'] = categoryMap.expense['其他'];
+                delete categoryMap.expense['其他']; changed = true;
+            }
+            if (categoryMap.expense && categoryMap.expense['其他支出']) {
+                let idx = categoryMap.expense['其他支出'].indexOf('其他未分類支出');
+                if (idx !== -1) { categoryMap.expense['其他支出'][idx] = '未分類支出'; changed = true; }
+            }
+            if (categoryMap.income && categoryMap.income['其他收入']) {
+                let idx = categoryMap.income['其他收入'].indexOf('其他收入');
+                if (idx !== -1) { categoryMap.income['其他收入'][idx] = '未分類收入'; changed = true; }
+            }
+            if (changed) localStorage.setItem('ok_category_map', JSON.stringify(categoryMap));
+
+            let txChanged = false;
+            transactions.forEach(t => {
+                if (t.type === 'expense' && t.parentCat === '其他') { t.parentCat = '其他支出'; txChanged = true; }
+                if (t.type === 'expense' && t.parentCat === '其他支出' && t.subCat === '其他未分類支出') { t.subCat = '未分類支出'; txChanged = true; }
+                if (t.type === 'income' && t.parentCat === '其他收入' && t.subCat === '其他收入') { t.subCat = '未分類收入'; txChanged = true; }
+            });
+            if (txChanged) localStorage.setItem('ok_transactions', JSON.stringify(transactions));
+
+            let bgChanged = false;
+            Object.keys(budgets).forEach(y => {
+                let newYearBg = {};
+                Object.keys(budgets[y]).forEach(k => {
+                    let b = budgets[y][k];
+                    if (b.type === 'expense' && b.parentCat === '其他') b.parentCat = '其他支出';
+                    if (b.type === 'expense' && b.parentCat === '其他支出' && b.subCat === '其他未分類支出') b.subCat = '未分類支出';
+                    if (b.type === 'income' && b.parentCat === '其他收入' && b.subCat === '其他收入') b.subCat = '未分類收入';
+                    
+                    b.id = b.id.includes('bg-') ? b.id : `bg-${b.year}-${b.type}-${b.parentCat}-${b.subCat}`;
+                    newYearBg[`${b.type}_${b.parentCat}_${b.subCat}`] = b;
+                    if (k !== `${b.type}_${b.parentCat}_${b.subCat}`) bgChanged = true;
+                });
+                budgets[y] = newYearBg;
+            });
+            if (bgChanged) localStorage.setItem('ok_annual_budgets', JSON.stringify(budgets));
+        }
+
         window.onload = function() {
             if (typeof ChartDataLabels !== 'undefined') Chart.register(ChartDataLabels);
             document.getElementById('current-date-badge').innerText = `系統日期: ${todayDateObj.toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'long' })}`;
-            initCategoryMap();
+            
+            if (localStorage.getItem('ok_category_map')) categoryMap = JSON.parse(localStorage.getItem('ok_category_map'));
+            else { categoryMap = JSON.parse(JSON.stringify(CATEGORY_MAP)); localStorage.setItem('ok_category_map', JSON.stringify(categoryMap)); }
 
             if (localStorage.getItem('ok_transactions')) {
                 transactions = JSON.parse(localStorage.getItem('ok_transactions'));
                 transactions.forEach(t => { if (!t.updatedAt) t.updatedAt = Date.now(); if (!t.payMethod) t.payMethod = '現金'; t.date = cleanDateToYMD(t.date); });
             } else localStorage.setItem('ok_transactions', JSON.stringify(transactions = []));
-
             deletedTxLog = JSON.parse(localStorage.getItem('ok_deleted_tx_log')) || [];
             
-            if (localStorage.getItem('ok_budgets') && !localStorage.getItem('ok_annual_budgets')) {
-                let old = JSON.parse(localStorage.getItem('ok_budgets')), n = {};
-                Object.keys(old).forEach(ym => {
-                    let [y, m] = ym.split('-'); if (!n[y]) n[y] = {};
-                    Object.keys(old[ym]).forEach(k => {
-                        if (k.includes(' > ')) {
-                            let [p, s] = k.split(' > '), type = categoryMap.income && categoryMap.income[p] ? 'income' : 'expense', bgK = `${type}_${p}_${s}`;
-                            if (!n[y][bgK]) n[y][bgK] = { id: `bg-${y}-${type}-${p}-${s}`, year: y, type, parentCat: p, subCat: s, amounts: {'01':0,'02':0,'03':0,'04':0,'05':0,'06':0,'07':0,'08':0,'09':0,'10':0,'11':0,'12':0}, note: "", updatedAt: old[ym][k].updatedAt || Date.now() };
-                            n[y][bgK].amounts[m] = parseFloat(old[ym][k].amount) || 0;
-                            if ((old[ym][k].updatedAt||0) > n[y][bgK].updatedAt) n[y][bgK].updatedAt = old[ym][k].updatedAt;
-                        }
-                    });
-                });
-                localStorage.setItem('ok_annual_budgets', JSON.stringify(budgets = n));
-                localStorage.setItem('ok_deleted_budget_log', JSON.stringify(deletedBudgetLog = []));
-            } else {
-                budgets = JSON.parse(localStorage.getItem('ok_annual_budgets') || '{}');
-                deletedBudgetLog = JSON.parse(localStorage.getItem('ok_deleted_budget_log') || '[]');
-                localStorage.setItem('ok_annual_budgets', JSON.stringify(budgets));
-                localStorage.setItem('ok_deleted_budget_log', JSON.stringify(deletedBudgetLog));
-            }
+            budgets = JSON.parse(localStorage.getItem('ok_annual_budgets') || '{}');
+            deletedBudgetLog = JSON.parse(localStorage.getItem('ok_deleted_budget_log') || '[]');
+
+            migrateLegacyCategories();
 
             if (localStorage.getItem('ok_settings')) {
                 systemSettings = JSON.parse(localStorage.getItem('ok_settings'));
@@ -953,12 +1019,22 @@ function overwriteAllData(sp, txList, bgList) {
             ys.value = date.getFullYear(); ms.value = ("0"+(date.getMonth()+1)).slice(-2); handleBudgetPeriodChange();
         }
 
-        function initCategoryMap() {
-            if (localStorage.getItem('ok_category_map')) {
-                categoryMap = JSON.parse(localStorage.getItem('ok_category_map'));
-                if (categoryMap.expense && categoryMap.expense["餐飲飲食"]) { categoryMap = JSON.parse(JSON.stringify(CATEGORY_MAP)); localStorage.setItem('ok_category_map', JSON.stringify(categoryMap)); }
-            } else { categoryMap = JSON.parse(JSON.stringify(CATEGORY_MAP)); localStorage.setItem('ok_category_map', JSON.stringify(categoryMap)); }
+        function toggleAllCheckboxes(className, checked) { document.querySelectorAll(`.${className}`).forEach(c => c.checked = checked); }
+
+        function switchTab(id) {
+            document.querySelectorAll('.tab-content').forEach(el=>el.classList.add('hidden')); document.getElementById(`tab-${id}`).classList.remove('hidden');
+            document.querySelectorAll('.tab-btn').forEach(b=>b.className="flex-1 lg:flex-initial flex items-center justify-center lg:justify-start space-x-3 px-4 py-3 rounded-xl font-medium transition duration-200 tab-btn text-slate-600 hover:bg-slate-100");
+            const btn = document.getElementById(`btn-${id}`); if(btn) btn.className="flex-1 lg:flex-initial flex items-center justify-center lg:justify-start space-x-3 px-4 py-3 rounded-xl font-medium transition duration-200 tab-btn bg-emerald-100 text-emerald-800 shadow-sm border border-emerald-200";
+            if(id==='dashboard') renderDashboard(); else if(id==='transactions') renderTransactionTable(); else if(id==='budget') initBudgetInputs(); else if(id==='reports') {initReportConfig(); generateReport();} else if(id==='settings') renderCategoryLists();
         }
+
+        function showToast(m, t="success") {
+            let ct=document.getElementById('toast-container'), ts=document.createElement('div'), bg=t==='error'?"bg-rose-600":t==='info'?"bg-blue-600":"bg-emerald-600";
+            ts.className=`${bg} text-white px-5 py-3 rounded-2xl shadow-xl transform transition-all duration-300 translate-y-2 opacity-0 text-sm font-semibold pointer-events-auto mx-auto`; ts.innerText=m; ct.appendChild(ts);
+            setTimeout(()=>ts.classList.remove('translate-y-2','opacity-0'),10); setTimeout(()=>{ts.classList.add('opacity-0','translate-y-[-10px]'); setTimeout(()=>ts.remove(),300);}, 3500);
+        }
+
+        function togglePasswordVisibility(id, ico) { let i=document.getElementById(id), c=document.getElementById(ico); if(i&&c) { if(i.type==="password"){i.type="text";c.innerText="🙈";}else{i.type="password";c.innerText="👁️";} } }
 
         function setManagerType(type) {
             activeMgrType = type;
@@ -1016,25 +1092,10 @@ function overwriteAllData(sp, txList, bgList) {
             });
         }
 
-        function openConfirmModalCustom(icn, tit, msg, btn, cb) {
-            document.getElementById('confirm-modal-icon').innerText = icn; document.getElementById('confirm-modal-title').innerText = tit; document.getElementById('confirm-modal-message').innerText = msg; document.getElementById('confirm-modal-btn-action').innerText = btn;
-            document.getElementById('custom-confirm-modal').classList.remove('hidden'); setTimeout(()=>document.getElementById('confirm-modal-box').classList.remove('scale-95'),10);
-            confirmActionCallback = cb;
-        }
-
         function addParentCategory() { let n = document.getElementById('new-parent-name').value.trim(); if(!n) return showToast("❌ 名稱不可為空", "error"); if(categoryMap[activeMgrType][n]) return showToast("❌ 大類已存在", "error"); categoryMap[activeMgrType][n]=[]; saveCategoryChanges(); document.getElementById('new-parent-name').value=''; activeMgrParent=n; renderCategoryLists(); showToast("🟢 新增成功", "success"); }
         function addSubCategory() { let n = document.getElementById('new-sub-name').value.trim(); if(!activeMgrParent) return showToast("❌ 先選大類", "error"); if(!n) return showToast("❌ 不可為空", "error"); if(categoryMap[activeMgrType][activeMgrParent].includes(n)) return showToast("❌ 細項已存在", "error"); categoryMap[activeMgrType][activeMgrParent].push(n); saveCategoryChanges(); document.getElementById('new-sub-name').value=''; renderCategoryLists(); showToast("🟢 新增成功", "success"); }
         function deleteSubCategory(sub) { if(!activeMgrParent) return; categoryMap[activeMgrType][activeMgrParent]=categoryMap[activeMgrType][activeMgrParent].filter(s=>s!==sub); Object.keys(budgets).forEach(y=>{ let k=`${activeMgrType}_${activeMgrParent}_${sub}`; if(budgets[y]&&budgets[y][k]) { deletedBudgetLog.push({id: budgets[y][k].id, updatedAt: Date.now()}); delete budgets[y][k]; } }); localStorage.setItem('ok_annual_budgets', JSON.stringify(budgets)); localStorage.setItem('ok_deleted_budget_log', JSON.stringify(deletedBudgetLog)); saveCategoryChanges(); renderCategoryLists(); showToast("🗑️ 細項移除", "info"); }
         function saveCategoryChanges() { localStorage.setItem('ok_category_map', JSON.stringify(categoryMap)); setFormType(currentFormType); initBudgetInputs(); }
-        function openPromptModal(tit, def, cb) { document.getElementById('prompt-modal-title').innerText=tit; document.getElementById('prompt-modal-input').value=def; document.getElementById('custom-prompt-modal').classList.remove('hidden'); setTimeout(()=>document.getElementById('prompt-modal-box').classList.remove('scale-95'),10); promptConfirmCallback=()=>{let v=document.getElementById('prompt-modal-input').value.trim(); if(v)cb(v); closePromptModal();}; document.getElementById('prompt-modal-btn-confirm').onclick=promptConfirmCallback; }
-        function closePromptModal() { document.getElementById('prompt-modal-box').classList.add('scale-95'); setTimeout(()=>document.getElementById('custom-prompt-modal').classList.add('hidden'),150); promptConfirmCallback=null; }
-
-        function switchTab(id) {
-            document.querySelectorAll('.tab-content').forEach(el=>el.classList.add('hidden')); document.getElementById(`tab-${id}`).classList.remove('hidden');
-            document.querySelectorAll('.tab-btn').forEach(b=>b.className="flex-1 lg:flex-initial flex items-center justify-center lg:justify-start space-x-3 px-4 py-3 rounded-xl font-medium transition duration-200 tab-btn text-slate-600 hover:bg-slate-100");
-            const btn = document.getElementById(`btn-${id}`); if(btn) btn.className="flex-1 lg:flex-initial flex items-center justify-center lg:justify-start space-x-3 px-4 py-3 rounded-xl font-medium transition duration-200 tab-btn bg-emerald-100 text-emerald-800 shadow-sm border border-emerald-200";
-            if(id==='dashboard') renderDashboard(); else if(id==='transactions') renderTransactionTable(); else if(id==='budget') initBudgetInputs(); else if(id==='reports') {initReportConfig(); generateReport();} else if(id==='settings') renderCategoryLists();
-        }
 
         async function callGemini(sys, user, schema, b64, mime) {
             const key = systemSettings.geminiApiKey||""; if(!key) throw new Error("無 API 金鑰");
@@ -1067,23 +1128,30 @@ function overwriteAllData(sp, txList, bgList) {
         function getAISubHTML(t, p, s) { return (categoryMap[t]&&categoryMap[t][p]||[]).map(sub=>`<option value="${sub}" ${sub===s?'selected':''}>${sub}</option>`).join(''); }
         function updateAIParentCat(i) { let t=document.getElementById(`ai-type-${i}`).value; document.getElementById(`ai-parent-${i}`).innerHTML=getAICatHTML(t,''); updateAISubCat(i); }
         function updateAISubCat(i) { let t=document.getElementById(`ai-type-${i}`).value, p=document.getElementById(`ai-parent-${i}`).value; document.getElementById(`ai-sub-${i}`).innerHTML=getAISubHTML(t,p,''); }
-        function toggleAllAIImport(c) { document.querySelectorAll('.ai-import-chk').forEach(ch=>ch.checked=c); }
         
         function renderAIPreviewList() {
             let cont=document.getElementById('ai-parsed-items'); cont.innerHTML=''; document.getElementById('ai-parsed-count').innerText=`${parsedAITransactions.length} 筆`;
             parsedAITransactions.forEach((t, i) => {
-                cont.innerHTML += `<div class="p-3 bg-white rounded-xl border border-slate-200 text-xs shadow-sm space-y-2 relative"><div class="flex items-center gap-2 mb-1 border-b border-slate-100 pb-2"><input type="checkbox" class="ai-import-chk w-4 h-4 text-emerald-600 rounded custom-checkbox" data-idx="${i}" checked><span class="font-bold text-indigo-700">選擇匯入</span></div><div class="grid grid-cols-2 gap-2"><div><label>日期</label><input type="date" id="ai-date-${i}" value="${cleanDateToYMD(t.date)}" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 focus:outline-none"></div><div><label>類型</label><select id="ai-type-${i}" onchange="updateAIParentCat(${i})" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1"><option value="expense" ${t.type==='expense'?'selected':''}>支出</option><option value="income" ${t.type==='income'?'selected':''}>收入</option></select></div><div><label>方式</label><select id="ai-pay-${i}" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1"><option value="現金" ${t.payMethod==='現金'?'selected':''}>現金</option><option value="信用卡" ${t.payMethod==='信用卡'?'selected':''}>信用卡</option></select></div><div><label>金額</label><input type="number" id="ai-amount-${i}" value="${Math.abs(t.amount)}" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1"></div></div><div class="grid grid-cols-2 gap-2 mt-2"><div><label>大類</label><select id="ai-parent-${i}" onchange="updateAISubCat(${i})" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1">${getAICatHTML(t.type,t.parentCat)}</select></div><div><label>細項</label><select id="ai-sub-${i}" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1">${getAISubHTML(t.type,t.parentCat,t.subCat)}</select></div></div><div class="mt-2"><label>備註</label><input type="text" id="ai-note-${i}" value="${t.note||''}" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1"></div></div>`;
+                cont.innerHTML += `<div class="p-3 bg-white rounded-xl border border-slate-200 text-xs shadow-sm space-y-2 relative"><div class="flex items-center gap-2 mb-1 border-b border-slate-100 pb-2"><input type="checkbox" class="ai-import-chk w-4 h-4 text-emerald-600 rounded custom-checkbox" data-idx="${i}" checked onchange="document.getElementById('ai-parsed-count').innerText=document.querySelectorAll('.ai-import-chk:checked').length+' 筆'"><span class="font-bold text-indigo-700">選擇匯入</span></div><div class="grid grid-cols-2 gap-2"><div><label>日期</label><input type="date" id="ai-date-${i}" value="${cleanDateToYMD(t.date)}" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 focus:outline-none"></div><div><label>類型</label><select id="ai-type-${i}" onchange="updateAIParentCat(${i})" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1"><option value="expense" ${t.type==='expense'?'selected':''}>支出</option><option value="income" ${t.type==='income'?'selected':''}>收入</option></select></div><div><label>方式</label><select id="ai-pay-${i}" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1"><option value="現金" ${t.payMethod==='現金'?'selected':''}>現金</option><option value="信用卡" ${t.payMethod==='信用卡'?'selected':''}>信用卡</option></select></div><div><label>金額</label><input type="number" id="ai-amount-${i}" value="${Math.abs(t.amount)}" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1"></div></div><div class="grid grid-cols-2 gap-2 mt-2"><div><label>大類</label><select id="ai-parent-${i}" onchange="updateAISubCat(${i})" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1">${getAICatHTML(t.type,t.parentCat)}</select></div><div><label>細項</label><select id="ai-sub-${i}" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1">${getAISubHTML(t.type,t.parentCat,t.subCat)}</select></div></div><div class="mt-2"><label>備註</label><input type="text" id="ai-note-${i}" value="${t.note||''}" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1"></div></div>`;
             }); document.getElementById('ai-preview-section').classList.remove('hidden');
         }
 
-        async function importAIParsedTransactions() {
+        function importAIParsedTransactions() {
             let chks = document.querySelectorAll('.ai-import-chk:checked'); if(chks.length===0) return showToast("⚠️ 請勾選", "info");
             Array.from(chks).map(c=>parseInt(c.dataset.idx)).sort((a,b)=>b-a).forEach(i=>{
-                transactions.unshift({id:'tx-'+Date.now()+'-'+Math.random().toString(36).substring(2,6), date:cleanDateToYMD(document.getElementById(`ai-date-${i}`).value), type:document.getElementById(`ai-type-${i}`).value, parentCat:document.getElementById(`ai-parent-${i}`).value, subCat:document.getElementById(`ai-sub-${i}`).value, payMethod:document.getElementById(`ai-pay-${i}`).value||'現金', amount:parseFloat(document.getElementById(`ai-amount-${i}`).value)||0, note:document.getElementById(`ai-note-${i}`).value.trim(), updatedAt:Date.now()});
+                transactions.unshift({id:'tx-'+shortId()+'-'+shortId(), date:cleanDateToYMD(document.getElementById(`ai-date-${i}`).value), type:document.getElementById(`ai-type-${i}`).value, parentCat:document.getElementById(`ai-parent-${i}`).value, subCat:document.getElementById(`ai-sub-${i}`).value, payMethod:document.getElementById(`ai-pay-${i}`).value||'現金', amount:parseFloat(document.getElementById(`ai-amount-${i}`).value)||0, note:document.getElementById(`ai-note-${i}`).value.trim(), updatedAt:Date.now()});
             }); localStorage.setItem('ok_transactions', JSON.stringify(transactions)); showToast(`🎉 成功匯入 ${chks.length} 筆`, "success");
             if(systemSettings.autoSync && systemSettings.googleScriptUrl) analyzeAndShowSyncDiff();
             document.getElementById('ai-raw-text').value=''; removeAIImage(); document.getElementById('ai-preview-section').classList.add('hidden'); parsedAITransactions=[];
             populateDynamicYearDropdowns(); initFilterOptions(); renderTransactionTable(); 
+        }
+
+        function cancelAIImport() {
+            document.getElementById('ai-raw-text').value = '';
+            removeAIImage();
+            document.getElementById('ai-preview-section').classList.add('hidden');
+            parsedAITransactions = [];
+            showToast("🚫 已取消本次匯入", "info");
         }
 
         async function sendToGoogleSheet(action, payload) {
@@ -1094,10 +1162,8 @@ function overwriteAllData(sp, txList, bgList) {
             } catch(e) { showToast(`❌ 同步錯誤: ${e.message}`, "error"); return null; }
         }
 
-        // --- 全新預覽同步邏輯 ---
         async function analyzeAndShowSyncDiff() {
             if (!systemSettings.googleScriptUrl) return showToast("❌ 請先設定 GAS 網址！", "error");
-            
             showToast("⏳ 正在取得雲端資料進行比對...", "info");
             let res = await sendToGoogleSheet("fetchCloudData", {});
             if (!res || !res.data) return;
@@ -1110,23 +1176,18 @@ function overwriteAllData(sp, txList, bgList) {
             
             pendingSyncDiffs = [];
             
-            // 比對 Tx
             new Set([...Object.keys(lTxMap), ...Object.keys(cTxMap), ...Object.keys(dTxMap)]).forEach(id => {
                 let l = lTxMap[id], c = cTxMap[id], isDel = dTxMap[id] !== undefined;
                 if (l && c) {
                     if (l.updatedAt > c.updatedAt) pendingSyncDiffs.push({id, type:'tx', action:'upload', local:l, cloud:c});
                     else if (l.updatedAt < c.updatedAt) pendingSyncDiffs.push({id, type:'tx', action:'download', local:l, cloud:c});
-                } else if (l && !c) {
-                    if (!isDel) pendingSyncDiffs.push({id, type:'tx', action:'upload', local:l});
+                } else if (l && !c) { if (!isDel) pendingSyncDiffs.push({id, type:'tx', action:'upload', local:l});
                 } else if (!l && c) {
-                    if (isDel) {
-                        if (dTxMap[id] > c.updatedAt) pendingSyncDiffs.push({id, type:'tx', action:'delete_cloud', cloud:c});
-                        else pendingSyncDiffs.push({id, type:'tx', action:'download', cloud:c});
+                    if (isDel) { if (dTxMap[id] > c.updatedAt) pendingSyncDiffs.push({id, type:'tx', action:'delete_cloud', cloud:c}); else pendingSyncDiffs.push({id, type:'tx', action:'download', cloud:c});
                     } else pendingSyncDiffs.push({id, type:'tx', action:'download', cloud:c});
                 }
             });
 
-            // 比對 Bg
             let localBgList = []; Object.keys(budgets).forEach(y => Object.keys(budgets[y]).forEach(k => localBgList.push(budgets[y][k])));
             const cBgMap = {}, lBgMap = {}, dBgMap = {};
             pendingCloudData.budgets.forEach(c => cBgMap[c.id] = c);
@@ -1138,42 +1199,24 @@ function overwriteAllData(sp, txList, bgList) {
                 if (l && c) {
                     if (l.updatedAt > c.updatedAt) pendingSyncDiffs.push({id, type:'bg', action:'upload', local:l, cloud:c});
                     else if (l.updatedAt < c.updatedAt) pendingSyncDiffs.push({id, type:'bg', action:'download', local:l, cloud:c});
-                } else if (l && !c) {
-                    if (!isDel) pendingSyncDiffs.push({id, type:'bg', action:'upload', local:l});
+                } else if (l && !c) { if (!isDel) pendingSyncDiffs.push({id, type:'bg', action:'upload', local:l});
                 } else if (!l && c) {
-                    if (isDel) {
-                        if (dBgMap[id] > c.updatedAt) pendingSyncDiffs.push({id, type:'bg', action:'delete_cloud', cloud:c});
-                        else pendingSyncDiffs.push({id, type:'bg', action:'download', cloud:c});
+                    if (isDel) { if (dBgMap[id] > c.updatedAt) pendingSyncDiffs.push({id, type:'bg', action:'delete_cloud', cloud:c}); else pendingSyncDiffs.push({id, type:'bg', action:'download', cloud:c});
                     } else pendingSyncDiffs.push({id, type:'bg', action:'download', cloud:c});
                 }
             });
 
-            if (pendingSyncDiffs.length === 0) {
-                showToast("✅ 本機與雲端資料完全一致，無須同步！", "success");
-                return;
-            }
-
+            if (pendingSyncDiffs.length === 0) return showToast("✅ 本機與雲端資料完全一致，無須同步！", "success");
             renderSyncDiffModal();
         }
 
         function renderSyncDiffModal() {
-            const container = document.getElementById('sync-diff-container');
-            container.innerHTML = '';
-            document.getElementById('diff-total-count').innerText = pendingSyncDiffs.length;
-
-            pendingSyncDiffs.sort((a,b) => {
-                if (a.action !== b.action) return a.action.localeCompare(b.action);
-                return a.type.localeCompare(b.type);
-            }).forEach((diff, idx) => {
+            const container = document.getElementById('sync-diff-container'); container.innerHTML = '';
+            pendingSyncDiffs.sort((a,b) => { if (a.action !== b.action) return a.action.localeCompare(b.action); return a.type.localeCompare(b.type); }).forEach((diff, idx) => {
                 let badgeClass = "", actionText = "", content = "";
-                
-                if (diff.action === 'upload') {
-                    badgeClass = "bg-indigo-100 text-indigo-700 border-indigo-200"; actionText = "上傳/覆蓋雲端";
-                } else if (diff.action === 'download') {
-                    badgeClass = "bg-emerald-100 text-emerald-700 border-emerald-200"; actionText = "下載覆寫本機";
-                } else if (diff.action === 'delete_cloud') {
-                    badgeClass = "bg-rose-100 text-rose-700 border-rose-200"; actionText = "刪除雲端紀錄";
-                }
+                if (diff.action === 'upload') { badgeClass = "bg-indigo-100 text-indigo-700 border-indigo-200"; actionText = "上傳雲端"; }
+                else if (diff.action === 'download') { badgeClass = "bg-emerald-100 text-emerald-700 border-emerald-200"; actionText = "下載本機"; }
+                else if (diff.action === 'delete_cloud') { badgeClass = "bg-rose-100 text-rose-700 border-rose-200"; actionText = "刪除雲端"; }
 
                 if (diff.type === 'tx') {
                     let d = diff.local || diff.cloud;
@@ -1183,93 +1226,41 @@ function overwriteAllData(sp, txList, bgList) {
                     content = `<span class="font-bold text-slate-700">${d.year} 年</span> <span class="mx-1 text-slate-400">|</span> <span>[預算] ${d.parentCat} - ${d.subCat}</span>`;
                 }
 
-                container.innerHTML += `
-                    <div class="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-200 hover:border-slate-300 transition shadow-sm">
-                        <div class="flex items-center space-x-3 overflow-hidden">
-                            <input type="checkbox" id="diff-chk-${idx}" class="custom-checkbox diff-chk" data-idx="${idx}" checked>
-                            <span class="px-2 py-0.5 rounded text-[10px] font-black border ${badgeClass} shrink-0">${actionText}</span>
-                            <div class="text-sm truncate">${content}</div>
-                        </div>
-                    </div>
-                `;
+                container.innerHTML += `<div class="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-200 hover:border-slate-300 transition shadow-sm"><div class="flex items-center space-x-3 overflow-hidden"><input type="checkbox" class="custom-checkbox diff-chk" data-idx="${idx}" checked onchange="updateSyncDiffCount()"><span class="px-2 py-0.5 rounded text-[10px] font-black border ${badgeClass} shrink-0">${actionText}</span><div class="text-sm truncate">${content}</div></div></div>`;
             });
-
-            document.getElementById('sync-diff-modal').classList.remove('hidden');
-            setTimeout(() => document.getElementById('sync-diff-box').classList.remove('scale-95'), 10);
+            updateSyncDiffCount(); document.getElementById('sync-diff-modal').classList.remove('hidden'); setTimeout(() => document.getElementById('sync-diff-box').classList.remove('scale-95'), 10);
         }
 
-        function closeSyncDiffModal() {
-            document.getElementById('sync-diff-box').classList.add('scale-95');
-            setTimeout(() => document.getElementById('sync-diff-modal').classList.add('hidden'), 150);
-        }
+        function updateSyncDiffCount() { document.getElementById('diff-total-count').innerText = document.querySelectorAll('.diff-chk:checked').length; }
+        function closeSyncDiffModal() { document.getElementById('sync-diff-box').classList.add('scale-95'); setTimeout(() => document.getElementById('sync-diff-modal').classList.add('hidden'), 150); }
 
         async function commitSyncFromUI() {
             let chks = document.querySelectorAll('.diff-chk');
-            
-            // 建立最終版本的 Map (以準備覆寫的資料為基底)
             const fCTx = {}, fLTx = {}, fCBg = {}, fLBg = {};
-            
-            pendingCloudData.transactions.forEach(c => fCTx[c.id] = c);
-            transactions.forEach(l => fLTx[l.id] = l);
+            pendingCloudData.transactions.forEach(c => fCTx[c.id] = c); transactions.forEach(l => fLTx[l.id] = l);
             pendingCloudData.budgets.forEach(c => fCBg[c.id] = c);
-            let localBgList = []; Object.keys(budgets).forEach(y => Object.keys(budgets[y]).forEach(k => localBgList.push(budgets[y][k])));
-            localBgList.forEach(l => fLBg[l.id] = l);
+            let localBgList = []; Object.keys(budgets).forEach(y => Object.keys(budgets[y]).forEach(k => localBgList.push(budgets[y][k]))); localBgList.forEach(l => fLBg[l.id] = l);
 
             let stats = { up: 0, down: 0, del: 0 };
-
             chks.forEach(chk => {
-                let idx = parseInt(chk.getAttribute('data-idx'));
-                let diff = pendingSyncDiffs[idx];
-                
+                let idx = parseInt(chk.getAttribute('data-idx')), diff = pendingSyncDiffs[idx];
                 if (chk.checked) {
-                    if (diff.action === 'upload') {
-                        if (diff.type === 'tx') { fCTx[diff.id] = diff.local; fLTx[diff.id] = diff.local; }
-                        else { fCBg[diff.id] = diff.local; fLBg[diff.id] = diff.local; }
-                        stats.up++;
-                    } else if (diff.action === 'download') {
-                        if (diff.type === 'tx') { fLTx[diff.id] = diff.cloud; fCTx[diff.id] = diff.cloud; }
-                        else { fLBg[diff.id] = diff.cloud; fCBg[diff.id] = diff.cloud; }
-                        stats.down++;
-                    } else if (diff.action === 'delete_cloud') {
-                        if (diff.type === 'tx') { delete fCTx[diff.id]; delete fLTx[diff.id]; }
-                        else { delete fCBg[diff.id]; delete fLBg[diff.id]; }
-                        stats.del++;
-                    }
-                } else {
-                    // 若取消勾選 delete_cloud，代表保留雲端，我們也幫它恢復到本機，免得下次又問
-                    if (diff.action === 'delete_cloud') {
-                        if (diff.type === 'tx') fLTx[diff.id] = diff.cloud;
-                        else fLBg[diff.id] = diff.cloud;
-                    }
-                }
+                    if (diff.action === 'upload') { if (diff.type === 'tx') { fCTx[diff.id] = diff.local; fLTx[diff.id] = diff.local; } else { fCBg[diff.id] = diff.local; fLBg[diff.id] = diff.local; } stats.up++; }
+                    else if (diff.action === 'download') { if (diff.type === 'tx') { fLTx[diff.id] = diff.cloud; fCTx[diff.id] = diff.cloud; } else { fLBg[diff.id] = diff.cloud; fCBg[diff.id] = diff.cloud; } stats.down++; }
+                    else if (diff.action === 'delete_cloud') { if (diff.type === 'tx') { delete fCTx[diff.id]; delete fLTx[diff.id]; } else { delete fCBg[diff.id]; delete fLBg[diff.id]; } stats.del++; }
+                } else { if (diff.action === 'delete_cloud') { if (diff.type === 'tx') fLTx[diff.id] = diff.cloud; else fLBg[diff.id] = diff.cloud; } }
             });
 
-            closeSyncDiffModal();
-            showToast("⏳ 正在將您的確認結果同步至雲端...", "info");
-
-            let finalTxArr = Object.values(fCTx);
-            let finalBgArr = Object.values(fCBg);
-
-            let res = await sendToGoogleSheet("overwriteCloudData", { transactions: finalTxArr, budgets: finalBgArr });
+            closeSyncDiffModal(); showToast("⏳ 同步至雲端中...", "info");
+            let res = await sendToGoogleSheet("overwriteCloudData", { transactions: Object.values(fCTx), budgets: Object.values(fCBg) });
             if (res && res.status === "success") {
-                // 更新本機
-                transactions = Object.values(fLTx);
-                localStorage.setItem('ok_transactions', JSON.stringify(transactions));
-                
+                transactions = Object.values(fLTx); localStorage.setItem('ok_transactions', JSON.stringify(transactions));
                 let newB = {}; Object.values(fLBg).forEach(b => { if(!newB[b.year]) newB[b.year]={}; newB[b.year][`${b.type}_${b.parentCat}_${b.subCat}`] = b; });
-                budgets = newB;
-                localStorage.setItem('ok_annual_budgets', JSON.stringify(budgets));
-                
-                deletedTxLog=[]; deletedBudgetLog=[];
-                localStorage.setItem('ok_deleted_tx_log','[]'); localStorage.setItem('ok_deleted_budget_log','[]');
-                localStorage.setItem('ok_last_sync_time', Date.now().toString());
-
+                budgets = newB; localStorage.setItem('ok_annual_budgets', JSON.stringify(budgets));
+                deletedTxLog=[]; deletedBudgetLog=[]; localStorage.setItem('ok_deleted_tx_log','[]'); localStorage.setItem('ok_deleted_budget_log','[]');
                 populateDynamicYearDropdowns(); initFilterOptions(); renderTransactionTable(); initBudgetInputs(); if(!document.getElementById('tab-dashboard').classList.contains('hidden')) renderDashboard();
-                
-                showToast(`🎉 同步完成！共上傳 ${stats.up} 筆，下載 ${stats.down} 筆，刪除 ${stats.del} 筆。`, "success");
-            } else {
-                showToast("❌ 同步寫入失敗，請重試！", "error");
-            }
+                showToast(`🎉 同步完成！上傳 ${stats.up}，下載 ${stats.down}，刪除 ${stats.del} 筆。`, "success");
+            } else showToast("❌ 同步失敗，請重試！", "error");
         }
 
         function saveSystemSettings() { systemSettings.geminiApiKey=document.getElementById('cfg-gemini-key').value.trim(); systemSettings.googleScriptUrl=document.getElementById('cfg-gas-url').value.trim(); systemSettings.googleScriptPassword=document.getElementById('cfg-gas-password').value.trim(); systemSettings.autoSync=document.getElementById('cfg-auto-sync').checked; localStorage.setItem('ok_settings', JSON.stringify(systemSettings)); showToast("💾 已儲存", "success"); }
@@ -1298,7 +1289,7 @@ function overwriteAllData(sp, txList, bgList) {
             e.preventDefault();
             let id=document.getElementById('tx-id').value, d=cleanDateToYMD(document.getElementById('tx-date').value), p=document.getElementById('tx-parent-cat').value, s=document.getElementById('tx-sub-cat').value, pay=document.getElementById('tx-pay-method').value, a=parseFloat(document.getElementById('tx-amount').value)||0, n=document.getElementById('tx-note').value.trim();
             if(!d||!p||!s||a===0) return showToast("❌ 請填妥", "error");
-            let pl = {id:id||'tx-'+Date.now(), date:d, type:currentFormType, parentCat:p, subCat:s, payMethod:pay, amount:a, note:n||`${s}消費`, updatedAt:Date.now()};
+            let pl = {id:id||`tx-${shortId()}-${shortId()}`, date:d, type:currentFormType, parentCat:p, subCat:s, payMethod:pay, amount:a, note:n, updatedAt:Date.now()};
             if(id) { let ix=transactions.findIndex(t=>t.id===id); if(ix!==-1) transactions[ix]=pl; showToast("✏️ 更新成功", "success"); } else { transactions.unshift(pl); showToast("💵 新增成功", "success"); }
             localStorage.setItem(`ok_last_${currentFormType}_parent`, p); localStorage.setItem(`ok_last_${currentFormType}_sub_${p}`, s); localStorage.setItem('ok_transactions', JSON.stringify(transactions));
             if(systemSettings.autoSync && systemSettings.googleScriptUrl) analyzeAndShowSyncDiff();
@@ -1308,12 +1299,12 @@ function overwriteAllData(sp, txList, bgList) {
         function resetForm() { document.getElementById('transaction-form').reset(); document.getElementById('tx-id').value=''; document.getElementById('tx-pay-method').value='現金'; document.getElementById('tx-date').value=cleanDateToYMD(todayDateObj); document.getElementById('form-title').innerHTML="<span>✍️ 新增收支紀錄</span>"; document.getElementById('btn-cancel-edit').classList.add('hidden'); setFormType('expense'); }
         function editTransaction(id) { let i=transactions.find(t=>t.id===id); if(!i)return; toggleInputMode('manual'); document.getElementById('form-title').innerHTML=`<span>✏️ 編輯</span>`; document.getElementById('btn-cancel-edit').classList.remove('hidden'); document.getElementById('tx-id').value=i.id; document.getElementById('tx-date').value=i.date; document.getElementById('tx-amount').value=i.amount; document.getElementById('tx-pay-method').value=i.payMethod||'現金'; document.getElementById('tx-note').value=i.note; setFormType(i.type); document.getElementById('tx-parent-cat').value=i.parentCat; updateSubCategoryDropdown(); document.getElementById('tx-sub-cat').value=i.subCat; document.getElementById('transaction-form').scrollIntoView({behavior:'smooth'}); }
         function deleteTransaction(id) { openConfirmModalCustom("❌","刪除這筆？","排入雲端刪除","確認刪除",()=>{ let ix=transactions.findIndex(t=>t.id===id); if(ix!==-1){ deletedTxLog.push({id:transactions[ix].id, updatedAt:Date.now()}); localStorage.setItem('ok_deleted_tx_log',JSON.stringify(deletedTxLog)); transactions.splice(ix,1); localStorage.setItem('ok_transactions',JSON.stringify(transactions)); showToast("🗑️ 已刪除", "info"); if(systemSettings.autoSync) analyzeAndShowSyncDiff(); renderTransactionTable(); initFilterOptions(); } }); }
-        
+
         function initFilterOptions() { let fm=document.getElementById('filter-month'); fm.innerHTML='<option value="all">所有月份</option>'; for(let i=1;i<=12;i++) fm.innerHTML+=`<option value="${("0"+i).slice(-2)}">${i} 月</option>`; fm.value=("0"+currentMonthNum).slice(-2); handleTypeFilterChange(); }
         function handleTypeFilterChange() { let t=document.getElementById('filter-type').value, fp=document.getElementById('filter-parent'); fp.innerHTML='<option value="all">所有大類</option>'; let ps = t==='all' ? [...Object.keys(categoryMap.expense),...Object.keys(categoryMap.income)] : Object.keys(categoryMap[t]); [...new Set(ps)].sort().forEach(p=>fp.innerHTML+=`<option value="${p}">${p}</option>`); fp.value='all'; handleParentFilterChange(); }
         function handleParentFilterChange() { let t=document.getElementById('filter-type').value, p=document.getElementById('filter-parent').value, fs=document.getElementById('filter-sub'); fs.innerHTML='<option value="all">所有細項</option>'; let ss = p==='all' ? [] : (t==='all' ? [...(categoryMap.expense[p]||[]),...(categoryMap.income[p]||[])] : categoryMap[t][p]||[]); [...new Set(ss)].sort().forEach(s=>fs.innerHTML+=`<option value="${s}">${s}</option>`); fs.value='all'; renderTransactionTable(); }
         function sortTable(f) { if(currentSortField===f) currentSortOrder=currentSortOrder==='asc'?'desc':'asc'; else {currentSortField=f; currentSortOrder=(f==='amount'||f==='date')?'desc':'asc';} renderTransactionTable(); }
-        
+
         function renderTransactionTable() {
             let t=document.getElementById('filter-type').value, y=document.getElementById('filter-year').value, m=document.getElementById('filter-month').value, p=document.getElementById('filter-parent').value, s=document.getElementById('filter-sub').value, sr=document.getElementById('search-note').value.trim().toLowerCase();
             let tb=document.getElementById('transaction-table-body'), nd=document.getElementById('no-data-alert'); tb.innerHTML='';
@@ -1356,7 +1347,7 @@ function overwriteAllData(sp, txList, bgList) {
                     let pps=0, pcs=0, subs=categoryMap[type][p]||[];
                     subs.forEach(s => { pps += (budgets[py]&&budgets[py][`${type}_${p}_${s}`]?parseFloat(budgets[py][`${type}_${p}_${s}`].amounts[m])||0:0); pcs += (budgets[y]&&budgets[y][`${type}_${p}_${s}`]?parseFloat(budgets[y][`${type}_${p}_${s}`].amounts[m])||0:0); });
                     let grp = document.createElement('div'); grp.className="border border-slate-200 rounded-xl overflow-hidden mb-3 bg-slate-50/50 shadow-sm";
-                    grp.innerHTML = `<div class="flex items-center justify-between gap-3 p-3 bg-slate-100 border-b border-slate-200"><div class="flex items-center space-x-1"><button onclick="toggleBudgetCollapse('${p}')" class="text-sm font-bold text-slate-600 p-1"><span id="col-${p}">${collapsedCategories[p]?'▶':'▼'}</span></button><span class="font-extrabold text-sm md:text-base">${p}</span></div><div class="flex space-x-2"><div class="text-[11px] bg-slate-200 px-2 py-1 rounded font-bold shrink-0">去年:$${pps.toLocaleString()}</div><div class="flex items-center bg-slate-200/50 border border-slate-300 rounded px-2 py-1 w-24"><span class="text-[10px] font-bold">🔒$</span><input type="text" id="bp-${p}" value="${pcs}" readonly class="w-full bg-transparent text-right font-extrabold focus:outline-none text-sm"></div></div></div>`;
+                    grp.innerHTML = `<div class="flex items-center justify-between gap-3 p-3 bg-slate-100 border-b border-slate-200"><div class="flex items-center space-x-1"><button onclick="toggleBudgetCollapse('${p}')" class="text-sm font-bold text-slate-600 p-1"><span id="col-${p}">${collapsedCategories[p]?'▶':'▼'}</span></button><span class="font-extrabold text-sm md:text-base">${p}</span></div><div class="flex space-x-2"><div class="text-[11px] bg-slate-200 px-2 py-1 rounded font-bold shrink-0">去年:$${pps.toLocaleString()}</div><div class="flex items-center bg-slate-200/50 border border-slate-300 rounded px-2 py-1 w-24"><span class="text-[10px] font-bold">🔒$</span><input type="text" id="bp-${p}" value="${pcs}" readonly class="w-full bg-transparent text-right font-extrabold focus:outline-none text-sm parent-budget-input"></div></div></div>`;
                     let pnl = document.createElement('div'); pnl.id=`bsp-${p}`; pnl.className=`divide-y divide-slate-100 bg-white ${collapsedCategories[p]?'hidden':''}`;
                     subs.forEach(s => {
                         let sp = budgets[py]&&budgets[py][`${type}_${p}_${s}`]?parseFloat(budgets[py][`${type}_${p}_${s}`].amounts[m])||0:0, sc = budgets[y]&&budgets[y][`${type}_${p}_${s}`]?parseFloat(budgets[y][`${type}_${p}_${s}`].amounts[m])||'':'';
@@ -1382,7 +1373,7 @@ function overwriteAllData(sp, txList, bgList) {
                 Object.keys(categoryMap[type]).forEach(p => {
                     document.querySelectorAll(`.sub-bi.type-${type}[data-p="${p}"]`).forEach(sub => {
                         let s = sub.getAttribute('data-s'), v = parseFloat(sub.value)||0, k = `${type}_${p}_${s}`;
-                        if(!budgets[y][k]) budgets[y][k] = { id:`bg-${y}-${type}-${p}-${s}`, year:y, type, parentCat:p, subCat:s, amounts:{'01':0,'02':0,'03':0,'04':0,'05':0,'06':0,'07':0,'08':0,'09':0,'10':0,'11':0,'12':0}, note:"", updatedAt:ts };
+                        if(!budgets[y][k]) budgets[y][k] = { id:`bg-${shortId()}-${shortId()}`, year:y, type, parentCat:p, subCat:s, amounts:{'01':0,'02':0,'03':0,'04':0,'05':0,'06':0,'07':0,'08':0,'09':0,'10':0,'11':0,'12':0}, note:"", updatedAt:ts };
                         if(budgets[y][k].amounts[m]!==v) { budgets[y][k].amounts[m]=v; budgets[y][k].updatedAt=ts; }
                     });
                 });
@@ -1402,23 +1393,6 @@ function overwriteAllData(sp, txList, bgList) {
             document.getElementById('annual-total-inc').innerText=`NT$ ${yti.toLocaleString()}`; document.getElementById('annual-total-exp').innerText=`NT$ ${yte.toLocaleString()}`; document.getElementById('annual-total-net').innerText=`NT$ ${(yti-yte).toLocaleString()}`; document.getElementById('annual-total-net').className=yti-yte>=0?"text-xl font-black text-blue-600":"text-xl font-black text-rose-600";
         }
 
-        function openAdvBudgetCopyModal() {
-            let sys=document.getElementById('adv-copy-src-year'); sys.innerHTML=''; for(let y=currentYearNum-2;y<=currentYearNum+2;y++) sys.innerHTML+=`<option value="${y}">${y} 年</option>`; sys.value=(currentYearNum-1).toString();
-            document.getElementById('adv-budget-copy-modal').classList.remove('hidden'); setTimeout(()=>document.getElementById('adv-budget-copy-box').classList.remove('scale-95'),10);
-            updateAdvCopyDesc(); sys.onchange=updateAdvCopyDesc; document.getElementById('adv-copy-src-month').onchange=updateAdvCopyDesc;
-        }
-        function updateAdvCopyDesc() { document.getElementById('adv-copy-target-desc').innerHTML = document.getElementById('adv-copy-src-month').value==='all'?`完整覆蓋 <b>[${currentBudgetPeriod.split('-')[0]} 年]</b> 1~12 月資料。`:`覆蓋 <b>[${currentBudgetPeriod.split('-')[0]}年 ${currentBudgetPeriod.split('-')[1]}月]</b> 資料。`; }
-        function executeAdvBudgetCopy() {
-            let sy=document.getElementById('adv-copy-src-year').value, sm=document.getElementById('adv-copy-src-month').value, [cy, cm]=currentBudgetPeriod.split('-'), cc=0;
-            if(sm==='all') {
-                if(budgets[sy]) { if(!budgets[cy])budgets[cy]={}; Object.keys(budgets[sy]).forEach(k=>{ if(!budgets[cy][k]){ budgets[cy][k]=JSON.parse(JSON.stringify(budgets[sy][k])); budgets[cy][k].id=`bg-${cy}-${budgets[cy][k].type}-${budgets[cy][k].parentCat}-${budgets[cy][k].subCat}`; budgets[cy][k].year=cy; } else budgets[cy][k].amounts=JSON.parse(JSON.stringify(budgets[sy][k].amounts)); budgets[cy][k].updatedAt=Date.now(); cc++; }); }
-            } else {
-                if(budgets[sy]) { if(!budgets[cy])budgets[cy]={}; Object.keys(budgets[sy]).forEach(k=>{ if(!budgets[cy][k]){ budgets[cy][k]=JSON.parse(JSON.stringify(budgets[sy][k])); budgets[cy][k].id=`bg-${cy}-${budgets[cy][k].type}-${budgets[cy][k].parentCat}-${budgets[cy][k].subCat}`; budgets[cy][k].year=cy; Object.keys(budgets[cy][k].amounts).forEach(m=>budgets[cy][k].amounts[m]=0); } budgets[cy][k].amounts[cm]=budgets[sy][k].amounts[sm]; budgets[cy][k].updatedAt=Date.now(); cc++; }); }
-            }
-            if(cc===0) showToast("❌ 無可複製資料", "error"); else { localStorage.setItem('ok_annual_budgets', JSON.stringify(budgets)); showToast("🎉 複製成功！", "success"); initBudgetInputs(); isBudgetPageDirty=false; updateSaveBudgetButtonState(); closeAdvBudgetCopyModal(); if(systemSettings.autoSync) analyzeAndShowSyncDiff(); }
-        }
-        function closeAdvBudgetCopyModal() { document.getElementById('adv-budget-copy-box').classList.add('scale-95'); setTimeout(()=>document.getElementById('adv-budget-copy-modal').classList.add('hidden'),150); }
-
         function getMonthlyFinancials(ym) {
             let ti=0, te=0, ac={}; Object.keys(categoryMap.expense).forEach(c=>ac[c]=0); Object.keys(categoryMap.income).forEach(c=>ac[c]=0);
             let fl = transactions.filter(t=>t.date.startsWith(ym)); fl.forEach(t=>{ if(t.type==='income')ti+=t.amount; else te+=t.amount; if(ac[t.parentCat]!==undefined)ac[t.parentCat]+=t.amount; });
@@ -1437,7 +1411,7 @@ function overwriteAllData(sp, txList, bgList) {
             let ctx = document.getElementById('expensePieChart').getContext('2d'), lb=[], vl=[], cl=['#f43f5e','#ec4899','#d946ef','#a855f7','#8b5cf6','#6366f1','#3b82f6','#0ea5e9','#06b6d4','#14b8a6'];
             Object.keys(categoryMap.expense).forEach(c=>{ if(ac[c]>0) { lb.push(c); vl.push(ac[c]); } });
             if(dashboardPieChartInstance) dashboardPieChartInstance.destroy();
-            dashboardPieChartInstance = new Chart(ctx, { type:'doughnut', data:{labels:vl.length?lb:['無支出'], datasets:[{data:vl.length?vl:[1], backgroundColor:vl.length?cl:['#e2e8f0']}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}},datalabels:{formatter:(v,c)=>vl.length?(v*100/c.dataset.data.reduce((a,b)=>a+b,0)).toFixed(1)+"%":'', color:'#fff', font:{weight:'bold',size:10}, display:(c)=>vl.length&&(c.dataset.data[c.dataIndex]/c.dataset.data.reduce((a,b)=>a+b,0))>0.04}}, cutout:'55%'} });
+            dashboardPieChartInstance = new Chart(ctx, { type:'doughnut', data:{labels:vl.length?lb:['無支出'], datasets:[{data:vl.length?vl:[1], backgroundColor:vl.length?cl:['#e2e8f0']}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}},datalabels:{formatter:(v,c)=>vl.length?(v*100/c.dataset.data.reduce((a,b)=>a+b,0)).toFixed(1)+"%":'', color:'#fff', font:{weight:'bold',size:10}, display:(c)=>vl.length&&(c.dataset.data[c.dataIndex]/c.dataset.data.reduce((a,b)=>a+b,0))>0.04}}, cutout:'55'} });
         }
 
         function renderBudgetCompareChart(ac, ym) {
@@ -1516,31 +1490,83 @@ function overwriteAllData(sp, txList, bgList) {
             }).save().then(()=>showToast("🎉 PDF 匯出成功", "success")).catch(()=>showToast("❌ 失敗", "error"));
         }
 
-        function exportToCSV() {
-            let s=document.getElementById('report-start-date').value, e=document.getElementById('report-end-date').value; if(!s||!e)return showToast("❌ 請設時間", "error");
-            const esc = (st) => '"' + String(st).replace(/"/g, '""') + '"'; let csv = "\uFEFF=== 完整收支紀錄 ===\n收支ID,日期,類型,大類,細項,金額,支付方式,備註\n";
-            let fl = transactions.filter(t=>t.date>=s && t.date<=e); fl.sort((a,b)=>b.date.localeCompare(a.date)).forEach(t => csv += `${t.id},="${t.date}",${t.type==='income'?'收入':'支出'},${esc(t.parentCat)},${esc(t.subCat)},${t.amount},${t.payMethod},${esc(t.note)}\n`);
-            
-            csv += "\n\n=== 年度收支預算編列結果 ===\n預算ID,年分,類型,大類,細項,1月,2月,3月,4月,5月,6月,7月,8月,9月,10月,11月,12月,備註\n";
-            for(let y=new Date(s).getFullYear(); y<=new Date(e).getFullYear(); y++) {
-                if (budgets[y]) Object.keys(budgets[y]).forEach(k => { let b=budgets[y][k]; csv += `${b.id},${b.year},${b.type==='income'?'收入':'支出'},${esc(b.parentCat)},${esc(b.subCat)},${b.amounts['01']},${b.amounts['02']},${b.amounts['03']},${b.amounts['04']},${b.amounts['05']},${b.amounts['06']},${b.amounts['07']},${b.amounts['08']},${b.amounts['09']},${b.amounts['10']},${b.amounts['11']},${b.amounts['12']},${esc(b.note)}\n`; });
+        async function exportToExcel() {
+            let s=document.getElementById('report-start-date').value, e=document.getElementById('report-end-date').value; 
+            if(!s||!e) return showToast("❌ 請設時間", "error");
+
+            showToast("⏳ 正在產生 Excel 報表...", "info");
+            try {
+                const wb = new ExcelJS.Workbook();
+                
+                // 1. 收支紀錄 Sheet
+                const wsTx = wb.addWorksheet('收支紀錄');
+                wsTx.columns = [
+                    { header: '日期(YYYY-MM-DD)', key: 'date', width: 18 },
+                    { header: '收支類型', key: 'type', width: 15 },
+                    { header: '大類', key: 'parent', width: 20 },
+                    { header: '細項', key: 'sub', width: 20 },
+                    { header: '支付方式', key: 'pay', width: 15 },
+                    { header: '金額', key: 'amount', width: 15 },
+                    { header: '備註', key: 'note', width: 25 }
+                ];
+                wsTx.getColumn('date').alignment = { horizontal: 'left' };
+                wsTx.getColumn('date').numFmt = 'yyyy-mm-dd';
+
+                let fl = transactions.filter(t=>t.date>=s && t.date<=e);
+                fl.sort((a,b)=>b.date.localeCompare(a.date)).forEach(t => {
+                    wsTx.addRow([
+                        t.date,
+                        t.type === 'income' ? '收入' : '支出',
+                        t.parentCat,
+                        t.subCat,
+                        t.payMethod,
+                        t.amount,
+                        t.note
+                    ]);
+                });
+
+                // 2. 預算編列 Sheet
+                const wsBg = wb.addWorksheet('預算編列');
+                wsBg.columns = [
+                    { header: '年份', key: 'year', width: 10 },
+                    { header: '收支類型', key: 'type', width: 12 },
+                    { header: '大類', key: 'parent', width: 15 },
+                    { header: '細項', key: 'sub', width: 15 },
+                    ...Array.from({length: 12}, (_, i) => ({ header: `${i+1}月`, key: `m${i+1}`, width: 10 }))
+                ];
+                wsBg.getColumn('year').alignment = { horizontal: 'left' };
+                wsBg.getColumn('year').numFmt = '@';
+
+                for(let y=new Date(s).getFullYear(); y<=new Date(e).getFullYear(); y++) {
+                    if (budgets[y]) {
+                        Object.keys(budgets[y]).forEach(k => {
+                            let b = budgets[y][k];
+                            wsBg.addRow([
+                                b.year.toString(),
+                                b.type === 'income' ? '收入' : '支出',
+                                b.parentCat,
+                                b.subCat,
+                                b.amounts['01'], b.amounts['02'], b.amounts['03'], 
+                                b.amounts['04'], b.amounts['05'], b.amounts['06'], 
+                                b.amounts['07'], b.amounts['08'], b.amounts['09'], 
+                                b.amounts['10'], b.amounts['11'], b.amounts['12']
+                            ]);
+                        });
+                    }
+                }
+
+                const buf = await wb.xlsx.writeBuffer();
+                const blob = new Blob([buf], {type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+                const link = document.createElement('a'); 
+                link.href = URL.createObjectURL(blob); 
+                link.download = `收支報告_${s}_至_${e}.xlsx`; 
+                link.click();
+                showToast("📊 Excel 匯出成功", "success");
+            } catch (error) {
+                console.error(error);
+                showToast("❌ 匯出失敗：" + error.message, "error");
             }
-            csv += "\n\n=== 預算目標達成情形 ===\n大類名稱,類型,區間合計預算,實際金額,差異,達成率\n";
-            let ac={}; Object.keys(categoryMap.expense).forEach(c=>ac[c]=0); Object.keys(categoryMap.income).forEach(c=>ac[c]=0); fl.forEach(t=>{if(ac[t.parentCat]!==undefined)ac[t.parentCat]+=t.amount;});
-            [...Object.keys(categoryMap.income).map(c=>({n:c,t:'income',l:'收入'})), ...Object.keys(categoryMap.expense).map(c=>({n:c,t:'expense',l:'支出'}))].forEach(c=>{
-                let l=getBudgetForCategoryRange(s,e,c.n), a=ac[c.n]||0; if(l===0&&a===0)return; let v=c.t==='expense'?l-a:a-l, r=l>0?Math.round((a/l)*100):(c.t==='expense'?0:100);
-                csv += `${esc(c.n)},${c.l},${l},${a},${v},${r}%\n`;
-            });
-            let lk=document.createElement("a"); lk.href=URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8;'})); lk.download=`收支預算_${s}_至_${e}.csv`; document.body.appendChild(lk); lk.click(); document.body.removeChild(lk); showToast("📊 CSV 匯出成功", "success");
         }
-
-        function showToast(m, t="success") {
-            let ct=document.getElementById('toast-container'), ts=document.createElement('div'), bg=t==='error'?"bg-rose-600":t==='info'?"bg-blue-600":"bg-emerald-600";
-            ts.className=`${bg} text-white px-5 py-3 rounded-2xl shadow-xl transform transition-all duration-300 translate-y-2 opacity-0 text-sm font-semibold pointer-events-auto mx-auto`; ts.innerText=m; ct.appendChild(ts);
-            setTimeout(()=>ts.classList.remove('translate-y-2','opacity-0'),10); setTimeout(()=>{ts.classList.add('opacity-0','translate-y-[-10px]'); setTimeout(()=>ts.remove(),300);}, 3500);
-        }
-
-        function togglePasswordVisibility(id, ico) { let i=document.getElementById(id), c=document.getElementById(ico); if(i&&c) { if(i.type==="password"){i.type="text";c.innerText="🙈";}else{i.type="password";c.innerText="👁️";} } }
 
         function openConfirmModal(act, tid=null) {
             let cb = null;
@@ -1551,7 +1577,13 @@ function overwriteAllData(sp, txList, bgList) {
             else if(act==='factory-reset') { cb = () => { localStorage.clear(); showToast("♻️ 還原中...", "info"); setTimeout(()=>location.reload(),1000); }; openConfirmModalCustom("🚨","抹除所有資料？","將徹底清空本機所有紀錄並重置。","確認清空", cb); }
         }
 
+        function openConfirmModalCustom(icn, tit, msg, btn, cb) {
+            document.getElementById('confirm-modal-icon').innerText = icn; document.getElementById('confirm-modal-title').innerText = tit; document.getElementById('confirm-modal-message').innerText = msg; document.getElementById('confirm-modal-btn-action').innerText = btn;
+            document.getElementById('custom-confirm-modal').classList.remove('hidden'); setTimeout(()=>document.getElementById('confirm-modal-box').classList.remove('scale-95'),10); confirmActionCallback = cb;
+        }
         function closeConfirmModal() { document.getElementById('confirm-modal-box').classList.add('scale-95'); setTimeout(()=>document.getElementById('custom-confirm-modal').classList.add('hidden'),150); confirmActionCallback=null; }
+        function openPromptModal(tit, def, cb) { document.getElementById('prompt-modal-title').innerText=tit; document.getElementById('prompt-modal-input').value=def; document.getElementById('custom-prompt-modal').classList.remove('hidden'); setTimeout(()=>document.getElementById('prompt-modal-box').classList.remove('scale-95'),10); promptConfirmCallback=()=>{let v=document.getElementById('prompt-modal-input').value.trim(); if(v)cb(v); closePromptModal();}; document.getElementById('prompt-modal-btn-confirm').onclick=promptConfirmCallback; }
+        function closePromptModal() { document.getElementById('prompt-modal-box').classList.add('scale-95'); setTimeout(()=>document.getElementById('custom-prompt-modal').classList.add('hidden'),150); promptConfirmCallback=null; }
         
         function openBatchDeleteTxModal() {
             let ys=document.getElementById('batch-del-year'), yr=[...new Set(transactions.map(t=>t.date.substring(0,4)))];
@@ -1564,6 +1596,238 @@ function overwriteAllData(sp, txList, bgList) {
             transactions.forEach(t => { if(t.date.startsWith(p)) { deletedTxLog.push({id:t.id, updatedAt:Date.now()}); c++; } else kp.push(t); });
             if(c===0) return showToast("⚠️ 無紀錄", "info"); transactions=kp; localStorage.setItem('ok_transactions',JSON.stringify(transactions)); localStorage.setItem('ok_deleted_tx_log',JSON.stringify(deletedTxLog)); showToast(`🗑️ 刪除 ${c} 筆`, "info");
             if(systemSettings.autoSync) analyzeAndShowSyncDiff(); renderTransactionTable(); populateDynamicYearDropdowns(); closeBatchDeleteTxModal();
+        }
+
+        async function downloadTxTemplate() {
+            showToast("⏳ 正在產生收支範本...", "info");
+            try {
+                const wb = new ExcelJS.Workbook();
+                const ws = wb.addWorksheet('收支明細');
+                const ref = wb.addWorksheet('RefData', {state: 'hidden'});
+                const cats = categoryMap;
+
+                const getColName = (n) => { let s = ''; while (n > 0) { let m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - m) / 26); } return s; };
+                const safeStr = (str) => str.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_\u4e00-\u9fa5]/g, '');
+
+                ref.getColumn(1).values = ['支出', '收入'];
+                wb.definedNames.add('RefData!$A$1:$A$2', 'DL_Type');
+
+                const expParents = Object.keys(cats.expense);
+                ref.getColumn(2).values = expParents.length ? expParents : ['無'];
+                wb.definedNames.add(`RefData!$B$1:$B$${expParents.length||1}`, 'DL_支出');
+
+                const incParents = Object.keys(cats.income);
+                ref.getColumn(3).values = incParents.length ? incParents : ['無'];
+                wb.definedNames.add(`RefData!$C$1:$C$${incParents.length||1}`, 'DL_收入');
+
+                let colIdx = 4;
+                for (let type of ['expense', 'income']) {
+                    for (let p in cats[type]) {
+                        let subs = cats[type][p];
+                        if (!subs || subs.length === 0) subs = ['無'];
+                        let colLetter = getColName(colIdx);
+                        ref.getColumn(colIdx).values = subs;
+                        
+                        wb.definedNames.add(`RefData!$${colLetter}$1:$${colLetter}$${subs.length}`, "DL_" + safeStr(p));
+                        colIdx++;
+                    }
+                }
+
+                ws.columns = [
+                    { header: '日期(YYYY-MM-DD)', key: 'date', width: 18 },
+                    { header: '收支類型', key: 'type', width: 15 },
+                    { header: '大類', key: 'parent', width: 20 },
+                    { header: '細項', key: 'sub', width: 20 },
+                    { header: '支付方式', key: 'pay', width: 15 },
+                    { header: '金額', key: 'amount', width: 15 },
+                    { header: '備註', key: 'note', width: 25 }
+                ];
+
+                ws.getColumn('date').alignment = { horizontal: 'left' };
+                ws.getColumn('date').numFmt = 'yyyy-mm-dd';
+
+                let dStr = cleanDateToYMD(todayDateObj);
+                ws.addRow([dStr, '支出', '飲食', '外食', '現金', 150, '午餐']);
+                ws.addRow([dStr, '收入', '工作收入', '薪資', '現金', 50000, '薪水']);
+
+                for (let i = 2; i <= 200; i++) {
+                    ws.getCell('B' + i).dataValidation = { type: 'list', allowBlank: true, formulae: ['=DL_Type'] };
+                    ws.getCell('C' + i).dataValidation = { type: 'list', allowBlank: true, formulae: ['=INDIRECT("DL_"&$B'+i+')'] };
+                    ws.getCell('D' + i).dataValidation = { type: 'list', allowBlank: true, formulae: ['=INDIRECT("DL_"&SUBSTITUTE(SUBSTITUTE($C'+i+'," ","_"),"-","_"))'] };
+                    ws.getCell('E' + i).dataValidation = { type: 'list', allowBlank: true, formulae: ['"現金,信用卡"'] };
+                }
+
+                const buf = await wb.xlsx.writeBuffer();
+                const blob = new Blob([buf], {type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+                const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = '收支明細匯入範本.xlsx'; link.click();
+                showToast("📥 收支範本下載成功！", "success");
+            } catch (e) { console.error(e); showToast("❌ 範本產生失敗：" + e.message, "error"); }
+        }
+
+        async function downloadBgTemplate() {
+            showToast("⏳ 正在產生預算範本...", "info");
+            try {
+                const wb = new ExcelJS.Workbook();
+                const ws = wb.addWorksheet('預算編列');
+                
+                ws.columns = [
+                    { header: '年份', key: 'year', width: 10 },
+                    { header: '收支類型', key: 'type', width: 12 },
+                    { header: '大類', key: 'parent', width: 15 },
+                    { header: '細項', key: 'sub', width: 15 },
+                    ...Array.from({length: 12}, (_, i) => ({ header: `${i+1}月`, key: `m${i+1}`, width: 10 }))
+                ];
+                
+                ws.getColumn('year').alignment = { horizontal: 'left' };
+                ws.getColumn('year').numFmt = '@'; 
+
+                const y = todayDateObj.getFullYear();
+                for (let type in categoryMap) {
+                    let typeName = type === 'expense' ? '支出' : '收入';
+                    for (let p in categoryMap[type]) {
+                        let subs = categoryMap[type][p];
+                        if (!subs || subs.length === 0) subs = ['(無細項)'];
+                        subs.forEach(s => { ws.addRow([y.toString(), typeName, p, s, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]); });
+                    }
+                }
+                
+                const buf = await wb.xlsx.writeBuffer();
+                const blob = new Blob([buf], {type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+                const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = '預算編列匯入範本.xlsx'; link.click();
+                showToast("📥 預算範本下載成功！", "success");
+            } catch (e) { showToast("❌ 範本產生失敗：" + e.message, "error"); }
+        }
+
+        function importExcelTx(e) {
+            let f = e.target.files[0]; if (!f) return;
+            let reader = new FileReader();
+            reader.onload = function(evt) {
+                let data = new Uint8Array(evt.target.result);
+                let workbook = XLSX.read(data, {type: 'array', cellDates: true});
+                let sheet = workbook.Sheets[workbook.SheetNames[0]];
+                let json = XLSX.utils.sheet_to_json(sheet, {header: 1});
+                e.target.value = ''; // reset file input
+                
+                if (json.length < 2) return showToast("❌ 檔案為空或無資料", "error");
+                
+                pendingImportTxList = [];
+                for (let i = 1; i < json.length; i++) {
+                    let r = json[i]; if (!r || r.length < 6 || !r[0]) continue;
+                    let dt = r[0]; if (dt instanceof Date) dt = cleanDateToYMD(dt); else dt = cleanDateToYMD(new Date(dt));
+                    if (!dt || dt.includes('NaN')) continue;
+                    
+                    let type = r[1] === '收入' ? 'income' : 'expense';
+                    let amount = parseFloat(r[5]) || 0;
+
+                    pendingImportTxList.push({
+                        date: dt, type: type, parentCat: r[2] || '', subCat: r[3] || '',
+                        payMethod: r[4] || '現金', amount: amount, note: r[6] || ''
+                    });
+                }
+                
+                if (pendingImportTxList.length === 0) return showToast("❌ 找不到有效的收支紀錄", "error");
+                
+                let tbody = document.getElementById('import-tx-tbody'); tbody.innerHTML = '';
+                pendingImportTxList.forEach((t, idx) => {
+                    tbody.innerHTML += `<tr class="hover:bg-slate-100"><td class="py-2 px-3 text-center"><input type="checkbox" class="import-tx-chk custom-checkbox" data-idx="${idx}" checked onchange="updateImportTxCount()"></td><td class="py-2 px-3">${t.date}</td><td class="py-2 px-3 font-bold ${t.type==='income'?'text-emerald-600':'text-rose-600'}">${t.type==='income'?'收入':'支出'}</td><td class="py-2 px-3">${t.parentCat}</td><td class="py-2 px-3">${t.subCat}</td><td class="py-2 px-3">${t.payMethod}</td><td class="py-2 px-3 text-right font-black">$${t.amount.toLocaleString()}</td><td class="py-2 px-3 truncate max-w-[150px]">${t.note}</td></tr>`;
+                });
+                
+                updateImportTxCount();
+                document.getElementById('import-tx-modal').classList.remove('hidden');
+                setTimeout(() => document.getElementById('import-tx-box').classList.remove('scale-95'), 10);
+            };
+            reader.readAsArrayBuffer(f);
+        }
+
+        function updateImportTxCount() { document.getElementById('import-tx-count').innerText = document.querySelectorAll('.import-tx-chk:checked').length; }
+        function closeImportTxModal() { document.getElementById('import-tx-box').classList.add('scale-95'); setTimeout(()=>document.getElementById('import-tx-modal').classList.add('hidden'), 150); }
+
+        function commitImportTx() {
+            let chks = document.querySelectorAll('.import-tx-chk:checked');
+            if (chks.length === 0) return showToast("⚠️ 請至少勾選一筆", "info");
+            
+            let added = 0;
+            chks.forEach(chk => {
+                let idx = parseInt(chk.getAttribute('data-idx'));
+                let t = pendingImportTxList[idx];
+                t.id = `tx-${shortId()}-${shortId()}`;
+                t.updatedAt = Date.now();
+                transactions.unshift(t);
+                added++;
+            });
+            
+            localStorage.setItem('ok_transactions', JSON.stringify(transactions));
+            closeImportTxModal();
+            showToast(`🎉 成功匯入 ${added} 筆收支明細！`, "success");
+            populateDynamicYearDropdowns(); initFilterOptions(); renderTransactionTable();
+            if (systemSettings.autoSync) analyzeAndShowSyncDiff();
+        }
+
+        function importExcelBg(e) {
+            let f = e.target.files[0]; if (!f) return;
+            let reader = new FileReader();
+            reader.onload = function(evt) {
+                let data = new Uint8Array(evt.target.result);
+                let workbook = XLSX.read(data, {type: 'array'});
+                let sheet = workbook.Sheets[workbook.SheetNames[0]];
+                let json = XLSX.utils.sheet_to_json(sheet, {header: 1});
+                e.target.value = '';
+                
+                if (json.length < 2) return showToast("❌ 檔案為空或無資料", "error");
+                
+                pendingImportBgList = [];
+                for (let i = 1; i < json.length; i++) {
+                    let r = json[i]; if (!r || !r[0] || !r[2] || !r[3]) continue;
+                    let year = r[0].toString().trim();
+                    let type = r[1] === '收入' ? 'income' : 'expense';
+                    let amounts = {'01':parseFloat(r[4])||0,'02':parseFloat(r[5])||0,'03':parseFloat(r[6])||0,'04':parseFloat(r[7])||0,'05':parseFloat(r[8])||0,'06':parseFloat(r[9])||0,'07':parseFloat(r[10])||0,'08':parseFloat(r[11])||0,'09':parseFloat(r[12])||0,'10':parseFloat(r[13])||0,'11':parseFloat(r[14])||0,'12':parseFloat(r[15])||0};
+
+                    pendingImportBgList.push({ year: year, type: type, parentCat: r[2].toString(), subCat: r[3].toString(), amounts: amounts });
+                }
+                
+                if (pendingImportBgList.length === 0) return showToast("❌ 無效的預算資料", "info");
+                
+                let tbody = document.getElementById('import-bg-tbody'); tbody.innerHTML = '';
+                pendingImportBgList.forEach((b, idx) => {
+                    tbody.innerHTML += `<tr class="hover:bg-slate-100"><td class="py-2 px-3 text-center"><input type="checkbox" class="import-bg-chk custom-checkbox" data-idx="${idx}" checked onchange="updateImportBgCount()"></td><td class="py-2 px-3 font-bold">${b.year}</td><td class="py-2 px-3 ${b.type==='income'?'text-emerald-600':'text-rose-600'}">${b.type==='income'?'收入':'支出'}</td><td class="py-2 px-3">${b.parentCat}</td><td class="py-2 px-3">${b.subCat}</td><td class="py-2 px-2 text-right">$${b.amounts['01']}</td><td class="py-2 px-2 text-right">$${b.amounts['02']}</td><td class="py-2 px-2 text-right">$${b.amounts['03']}</td><td class="py-2 px-2 text-right">$${b.amounts['04']}</td><td class="py-2 px-2 text-right">$${b.amounts['05']}</td><td class="py-2 px-2 text-right">$${b.amounts['06']}</td></tr>`;
+                });
+                
+                updateImportBgCount();
+                document.getElementById('import-bg-modal').classList.remove('hidden');
+                setTimeout(() => document.getElementById('import-bg-box').classList.remove('scale-95'), 10);
+            };
+            reader.readAsArrayBuffer(f);
+        }
+
+        function updateImportBgCount() { document.getElementById('import-bg-count').innerText = document.querySelectorAll('.import-bg-chk:checked').length; }
+        function closeImportBgModal() { document.getElementById('import-bg-box').classList.add('scale-95'); setTimeout(()=>document.getElementById('import-bg-modal').classList.add('hidden'), 150); }
+
+        function commitImportBg() {
+            let chks = document.querySelectorAll('.import-bg-chk:checked');
+            if (chks.length === 0) return showToast("⚠️ 請至少勾選一筆", "info");
+            
+            let added = 0;
+            chks.forEach(chk => {
+                let idx = parseInt(chk.getAttribute('data-idx'));
+                let b = pendingImportBgList[idx];
+                
+                if (!budgets[b.year]) budgets[b.year] = {};
+                let k = `${b.type}_${b.parentCat}_${b.subCat}`;
+                
+                if (budgets[b.year][k]) {
+                    budgets[b.year][k].amounts = b.amounts;
+                    budgets[b.year][k].updatedAt = Date.now();
+                } else {
+                    budgets[b.year][k] = { id: `bg-${shortId()}-${shortId()}`, year: b.year, type: b.type, parentCat: b.parentCat, subCat: b.subCat, amounts: b.amounts, note: '', updatedAt: Date.now() };
+                }
+                added++;
+            });
+            
+            localStorage.setItem('ok_annual_budgets', JSON.stringify(budgets));
+            closeImportBgModal();
+            showToast(`🎉 成功覆蓋/匯入 ${added} 筆預算編列！`, "success");
+            initBudgetInputs();
+            if (systemSettings.autoSync) analyzeAndShowSyncDiff();
         }
     </script>
 </body>
