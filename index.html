@@ -10,6 +10,16 @@
       2. 【操作統一】首頁儀表板的「年/月」篩選器，全面升級為帶有左右快速切換箭頭的按鈕組件，與預算頁面看齊。
       3. 【手機端修復】修正「年度預算總覽」中，原生下拉箭頭與「年」字樣重疊的問題。
       ========================================================
+      版本修改日期: 2026-07-12 (安全與穩定性修正)
+      修改內容:
+      1. 【安全性修正】新增 esc() HTML 跳脫函式，對「備註 / 大類 / 細項」等使用者可控字串在渲染至 innerHTML 前進行跳脫，
+         防止備註內的特殊字元被當成 HTML/JavaScript 執行（防自我 XSS）。適用位置：同步預覽、收支明細表、儀表板近期紀錄、
+         報告明細、Excel 匯入預覽，共 6 處備註欄位插值。
+      2. 【AI 穩定性】AI 解析結果在 JSON.parse 前，先移除 Gemini 可能包覆的 ```json / ``` markdown 標記，
+         避免回傳格式偶爾夾帶代碼框導致解析失敗報錯。
+      3. 【AI 精度】AI 解析金額欄位由 INTEGER 改為 NUMBER，保留小數（如退款 99.5 元），避免金額被無條件捨去造成帳務誤差。
+      4. 【圖表防禦】支出分類圓餅圖計算時明確以正值判斷 (v>0) 才納入，確保負值（如退款）情境下圖表不會異常。
+      ========================================================
     -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
@@ -943,6 +953,8 @@ function overwriteAllData(sp, txList, bgList) {
         let pendingImportTxList = [];
         let pendingImportBgList = [];
         const shortId = () => Math.random().toString(36).substring(2, 8);
+        // HTML 跳脫：防止備註/類別等使用者可控字串被當成 HTML 執行 (防自我 XSS)
+        const esc = s => (s ?? '').toString().replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
 
         function cleanDateToYMD(dateStr) {
             if (!dateStr) return "";
@@ -1206,8 +1218,8 @@ function overwriteAllData(sp, txList, bgList) {
             let t = document.getElementById('ai-raw-text').value.trim(); if(!t && !aiImageBase64) return showToast("❌ 無內容", "error");
             document.getElementById('btn-ai-analyze').disabled = true; document.getElementById('btn-ai-analyze').innerHTML = `<span>⏳ 解析中...</span>`;
             try {
-                let res = await callGemini(`你是專業記帳助手。分類:${JSON.stringify(categoryMap)}。日期預設:${todayDateObj.getFullYear()}-${("0"+(todayDateObj.getMonth()+1)).slice(-2)}-${("0"+todayDateObj.getDate()).slice(-2)}。`, t, {type:"OBJECT",properties:{transactions:{type:"ARRAY",items:{type:"OBJECT",properties:{date:{type:"STRING"},type:{type:"STRING",enum:["expense","income"]},parentCat:{type:"STRING"},subCat:{type:"STRING"},payMethod:{type:"STRING",enum:["現金","信用卡"]},amount:{type:"INTEGER"},note:{type:"STRING"}},required:["date","type","parentCat","subCat","payMethod","amount","note"]}}},required:["transactions"]}, aiImageBase64, aiImageMimeType);
-                parsedAITransactions = JSON.parse(res.data.candidates[0].content.parts[0].text).transactions || [];
+                let res = await callGemini(`你是專業記帳助手。分類:${JSON.stringify(categoryMap)}。日期預設:${todayDateObj.getFullYear()}-${("0"+(todayDateObj.getMonth()+1)).slice(-2)}-${("0"+todayDateObj.getDate()).slice(-2)}。`, t, {type:"OBJECT",properties:{transactions:{type:"ARRAY",items:{type:"OBJECT",properties:{date:{type:"STRING"},type:{type:"STRING",enum:["expense","income"]},parentCat:{type:"STRING"},subCat:{type:"STRING"},payMethod:{type:"STRING",enum:["現金","信用卡"]},amount:{type:"NUMBER"},note:{type:"STRING"}},required:["date","type","parentCat","subCat","payMethod","amount","note"]}}},required:["transactions"]}, aiImageBase64, aiImageMimeType);
+                parsedAITransactions = JSON.parse(res.data.candidates[0].content.parts[0].text.replace(/```json|```/g,'').trim()).transactions || [];
                 if(parsedAITransactions.length===0) showToast("無項目", "info"); else { document.getElementById('ai-import-all').checked=true; renderAIPreviewList(); showToast(`✨ 解析 ${parsedAITransactions.length} 筆`, "success"); }
             } catch(e) { showToast(`❌ ${e.message}`, "error"); }
             finally { document.getElementById('btn-ai-analyze').disabled = false; document.getElementById('btn-ai-analyze').innerHTML = `<span>✨ 語意 / 影像綜合分析</span>`; }
@@ -1313,10 +1325,10 @@ function overwriteAllData(sp, txList, bgList) {
 
                 if (diff.type === 'tx') {
                     let d = diff.local || diff.cloud;
-                    content = `<span class="font-bold text-slate-700">${d.date}</span> <span class="mx-1 text-slate-400">|</span> <span>${d.parentCat} - ${d.subCat}</span> <span class="mx-1 text-slate-400">|</span> <span class="font-black ${d.type==='income'?'text-emerald-600':'text-rose-600'}">$${d.amount.toLocaleString()}</span> <span class="mx-1 text-slate-400">|</span> <span class="text-xs text-slate-500 truncate max-w-[120px] inline-block align-bottom">${d.note||''}</span>`;
+                    content = `<span class="font-bold text-slate-700">${d.date}</span> <span class="mx-1 text-slate-400">|</span> <span>${esc(d.parentCat)} - ${esc(d.subCat)}</span> <span class="mx-1 text-slate-400">|</span> <span class="font-black ${d.type==='income'?'text-emerald-600':'text-rose-600'}">$${d.amount.toLocaleString()}</span> <span class="mx-1 text-slate-400">|</span> <span class="text-xs text-slate-500 truncate max-w-[120px] inline-block align-bottom">${esc(d.note||'')}</span>`;
                 } else {
                     let d = diff.local || diff.cloud;
-                    content = `<span class="font-bold text-slate-700">${d.year} 年</span> <span class="mx-1 text-slate-400">|</span> <span>[預算] ${d.parentCat} - ${d.subCat}</span>`;
+                    content = `<span class="font-bold text-slate-700">${d.year} 年</span> <span class="mx-1 text-slate-400">|</span> <span>[預算] ${esc(d.parentCat)} - ${esc(d.subCat)}</span>`;
                 }
 
                 htmlBuf.push(`<div class="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-200 hover:border-slate-300 transition shadow-sm"><div class="flex items-center space-x-3 overflow-hidden"><input type="checkbox" class="custom-checkbox diff-chk" data-idx="${idx}" checked onchange="updateSyncDiffCount()"><span class="px-2 py-0.5 rounded text-[10px] font-black border ${badgeClass} shrink-0">${actionText}</span><div class="text-sm truncate">${content}</div></div></div>`);
@@ -1438,7 +1450,7 @@ function overwriteAllData(sp, txList, bgList) {
             if(fList.length===0) { nd.classList.remove('hidden'); tb.innerHTML = ''; }
             else { 
                 nd.classList.add('hidden'); 
-                fList.forEach(i=>{ let isInc=i.type==='income', amCol=isInc?(i.amount>=0?'text-emerald-600':'text-rose-600'):(i.amount>=0?'text-rose-600':'text-emerald-600'); htmlBuf.push(`<tr class="hover:bg-slate-50/80 transition-colors"><td class="py-3 px-4 text-xs md:text-sm text-slate-500 font-medium">${i.date}</td><td class="py-3 px-4">${isInc?'<span class="bg-emerald-50 text-emerald-700 text-xs px-2 py-1 rounded font-bold">收入</span>':'<span class="bg-rose-50 text-rose-700 text-xs px-2 py-1 rounded font-bold">支出</span>'}</td><td class="py-3 px-4 font-semibold text-slate-700">${i.parentCat}</td><td class="py-3 px-4 text-slate-500">${i.subCat}</td><td class="py-3 px-4 text-slate-500 text-xs font-semibold">${i.payMethod==='信用卡'?'💳':'💵'}</td><td class="py-3 px-4 text-xs md:text-sm text-slate-400 truncate max-w-[150px]">${i.note}</td><td class="py-3 px-4 text-right font-bold ${amCol}">${isInc?(i.amount>=0?'+':'-'):(i.amount>=0?'-':'+')}$${Math.abs(i.amount).toLocaleString()}</td><td class="py-3 px-4 text-center"><button onclick="editTransaction('${i.id}')" class="p-2 bg-indigo-50 text-indigo-700 text-xs rounded transition mr-1">編輯</button><button onclick="deleteTransaction('${i.id}')" class="p-2 bg-rose-50 text-rose-700 text-xs rounded transition">刪除</button></td></tr>`); }); 
+                fList.forEach(i=>{ let isInc=i.type==='income', amCol=isInc?(i.amount>=0?'text-emerald-600':'text-rose-600'):(i.amount>=0?'text-rose-600':'text-emerald-600'); htmlBuf.push(`<tr class="hover:bg-slate-50/80 transition-colors"><td class="py-3 px-4 text-xs md:text-sm text-slate-500 font-medium">${i.date}</td><td class="py-3 px-4">${isInc?'<span class="bg-emerald-50 text-emerald-700 text-xs px-2 py-1 rounded font-bold">收入</span>':'<span class="bg-rose-50 text-rose-700 text-xs px-2 py-1 rounded font-bold">支出</span>'}</td><td class="py-3 px-4 font-semibold text-slate-700">${esc(i.parentCat)}</td><td class="py-3 px-4 text-slate-500">${esc(i.subCat)}</td><td class="py-3 px-4 text-slate-500 text-xs font-semibold">${i.payMethod==='信用卡'?'💳':'💵'}</td><td class="py-3 px-4 text-xs md:text-sm text-slate-400 truncate max-w-[150px]">${esc(i.note)}</td><td class="py-3 px-4 text-right font-bold ${amCol}">${isInc?(i.amount>=0?'+':'-'):(i.amount>=0?'-':'+')}$${Math.abs(i.amount).toLocaleString()}</td><td class="py-3 px-4 text-center"><button onclick="editTransaction('${i.id}')" class="p-2 bg-indigo-50 text-indigo-700 text-xs rounded transition mr-1">編輯</button><button onclick="deleteTransaction('${i.id}')" class="p-2 bg-rose-50 text-rose-700 text-xs rounded transition">刪除</button></td></tr>`); }); 
                 tb.innerHTML = htmlBuf.join('');
             }
         }
@@ -1549,7 +1561,7 @@ function overwriteAllData(sp, txList, bgList) {
 
         function renderExpensePieChart(ac) {
             let ctx = document.getElementById('expensePieChart').getContext('2d'), lb=[], vl=[], cl=['#f43f5e','#ec4899','#d946ef','#a855f7','#8b5cf6','#6366f1','#3b82f6','#0ea5e9','#06b6d4','#14b8a6'];
-            Object.keys(categoryMap.expense).forEach(c=>{ if(ac[c]>0) { lb.push(c); vl.push(ac[c]); } });
+            Object.keys(categoryMap.expense).forEach(c=>{ let v=ac[c]||0; if(v>0) { lb.push(c); vl.push(v); } });
             if(dashboardPieChartInstance) dashboardPieChartInstance.destroy();
             dashboardPieChartInstance = new Chart(ctx, { type:'doughnut', data:{labels:vl.length?lb:['無支出'], datasets:[{data:vl.length?vl:[1], backgroundColor:vl.length?cl:['#e2e8f0']}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}},datalabels:{formatter:(v,c)=>vl.length?(v*100/c.dataset.data.reduce((a,b)=>a+b,0)).toFixed(1)+"%":'', color:'#fff', font:{weight:'bold',size:10}, display:(c)=>vl.length&&(c.dataset.data[c.dataIndex]/c.dataset.data.reduce((a,b)=>a+b,0))>0.04}}, cutout:'55'} });
         }
@@ -1573,7 +1585,7 @@ function overwriteAllData(sp, txList, bgList) {
             let ct=document.getElementById('dashboard-recent-transactions'); 
             let htmlBuf=[]; let s=[...list].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
             if(s.length===0) htmlBuf.push('<tr><td colspan="5" class="py-8 text-center text-slate-400 text-xs">無記帳</td></tr>');
-            else s.forEach(i=>{ htmlBuf.push(`<tr><td class="py-3 text-slate-500 text-xs">${i.date.substring(5)}</td><td class="py-3"><div class="font-bold text-slate-700 text-xs">${i.parentCat}</div><div class="text-[10px] text-slate-400">${i.subCat}</div></td><td class="py-3 text-slate-400 text-xs truncate max-w-[120px]">${i.note}</td><td class="py-3 text-center">${i.payMethod==='信用卡'?'💳':'💵'}</td><td class="py-3 text-right text-xs ${i.type==='income'?'text-emerald-600':'text-rose-600'} font-semibold">${i.type==='income'?'+':'-'}$${Math.abs(i.amount).toLocaleString()}</td></tr>`); });
+            else s.forEach(i=>{ htmlBuf.push(`<tr><td class="py-3 text-slate-500 text-xs">${i.date.substring(5)}</td><td class="py-3"><div class="font-bold text-slate-700 text-xs">${esc(i.parentCat)}</div><div class="text-[10px] text-slate-400">${esc(i.subCat)}</div></td><td class="py-3 text-slate-400 text-xs truncate max-w-[120px]">${esc(i.note)}</td><td class="py-3 text-center">${i.payMethod==='信用卡'?'💳':'💵'}</td><td class="py-3 text-right text-xs ${i.type==='income'?'text-emerald-600':'text-rose-600'} font-semibold">${i.type==='income'?'+':'-'}$${Math.abs(i.amount).toLocaleString()}</td></tr>`); });
             ct.innerHTML = htmlBuf.join('');
         }
 
@@ -1627,7 +1639,7 @@ function overwriteAllData(sp, txList, bgList) {
             let tb=document.getElementById('report-top-expenses-rows');
             let htmlBuf=[]; let top=fl.filter(t=>t.type==='expense').sort((a,b)=>b.amount-a.amount).slice(0,5);
             if(!top.length) htmlBuf.push('<tr><td colspan="5" class="py-6 text-center text-slate-400">無紀錄</td></tr>');
-            else top.forEach(i=>htmlBuf.push(`<tr class="text-xs hover:bg-slate-50"><td class="py-2 px-4">${i.date}</td><td class="py-2 px-4 font-bold">${i.parentCat}</td><td class="py-2 px-4">${i.subCat}</td><td class="py-2 px-4 truncate max-w-[150px]">${i.note}</td><td class="py-2 px-4 text-right text-rose-600 font-bold">$${i.amount.toLocaleString()}</td></tr>`));
+            else top.forEach(i=>htmlBuf.push(`<tr class="text-xs hover:bg-slate-50"><td class="py-2 px-4">${i.date}</td><td class="py-2 px-4 font-bold">${esc(i.parentCat)}</td><td class="py-2 px-4">${esc(i.subCat)}</td><td class="py-2 px-4 truncate max-w-[150px]">${esc(i.note)}</td><td class="py-2 px-4 text-right text-rose-600 font-bold">$${i.amount.toLocaleString()}</td></tr>`));
             tb.innerHTML=htmlBuf.join('');
         }
 
@@ -1862,7 +1874,7 @@ function overwriteAllData(sp, txList, bgList) {
                 let tbody = document.getElementById('import-tx-tbody');
                 let htmlBuf = [];
                 pendingImportTxList.forEach((t, idx) => {
-                    htmlBuf.push(`<tr class="hover:bg-slate-100"><td class="py-2 px-3 text-center"><input type="checkbox" class="import-tx-chk custom-checkbox" data-idx="${idx}" checked onchange="updateImportTxCount()"></td><td class="py-2 px-3">${t.date}</td><td class="py-2 px-3 font-bold ${t.type==='income'?'text-emerald-600':'text-rose-600'}">${t.type==='income'?'收入':'支出'}</td><td class="py-2 px-3">${t.parentCat}</td><td class="py-2 px-3">${t.subCat}</td><td class="py-2 px-3">${t.payMethod}</td><td class="py-2 px-3 text-right font-black">$${t.amount.toLocaleString()}</td><td class="py-2 px-3 truncate max-w-[150px]">${t.note}</td></tr>`);
+                    htmlBuf.push(`<tr class="hover:bg-slate-100"><td class="py-2 px-3 text-center"><input type="checkbox" class="import-tx-chk custom-checkbox" data-idx="${idx}" checked onchange="updateImportTxCount()"></td><td class="py-2 px-3">${t.date}</td><td class="py-2 px-3 font-bold ${t.type==='income'?'text-emerald-600':'text-rose-600'}">${t.type==='income'?'收入':'支出'}</td><td class="py-2 px-3">${esc(t.parentCat)}</td><td class="py-2 px-3">${esc(t.subCat)}</td><td class="py-2 px-3">${t.payMethod}</td><td class="py-2 px-3 text-right font-black">$${t.amount.toLocaleString()}</td><td class="py-2 px-3 truncate max-w-[150px]">${esc(t.note)}</td></tr>`);
                 });
                 tbody.innerHTML = htmlBuf.join('');
                 
@@ -1925,7 +1937,7 @@ function overwriteAllData(sp, txList, bgList) {
                 let tbody = document.getElementById('import-bg-tbody');
                 let htmlBuf = [];
                 pendingImportBgList.forEach((b, idx) => {
-                    htmlBuf.push(`<tr class="hover:bg-slate-100"><td class="py-2 px-3 text-center"><input type="checkbox" class="import-bg-chk custom-checkbox" data-idx="${idx}" checked onchange="updateImportBgCount()"></td><td class="py-2 px-3 font-bold">${b.year}</td><td class="py-2 px-3 ${b.type==='income'?'text-emerald-600':'text-rose-600'}">${b.type==='income'?'收入':'支出'}</td><td class="py-2 px-3">${b.parentCat}</td><td class="py-2 px-3">${b.subCat}</td><td class="py-2 px-2 text-right">$${b.amounts['01']}</td><td class="py-2 px-2 text-right">$${b.amounts['02']}</td><td class="py-2 px-2 text-right">$${b.amounts['03']}</td><td class="py-2 px-2 text-right">$${b.amounts['04']}</td><td class="py-2 px-2 text-right">$${b.amounts['05']}</td><td class="py-2 px-2 text-right">$${b.amounts['06']}</td></tr>`);
+                    htmlBuf.push(`<tr class="hover:bg-slate-100"><td class="py-2 px-3 text-center"><input type="checkbox" class="import-bg-chk custom-checkbox" data-idx="${idx}" checked onchange="updateImportBgCount()"></td><td class="py-2 px-3 font-bold">${b.year}</td><td class="py-2 px-3 ${b.type==='income'?'text-emerald-600':'text-rose-600'}">${b.type==='income'?'收入':'支出'}</td><td class="py-2 px-3">${esc(b.parentCat)}</td><td class="py-2 px-3">${esc(b.subCat)}</td><td class="py-2 px-2 text-right">$${b.amounts['01']}</td><td class="py-2 px-2 text-right">$${b.amounts['02']}</td><td class="py-2 px-2 text-right">$${b.amounts['03']}</td><td class="py-2 px-2 text-right">$${b.amounts['04']}</td><td class="py-2 px-2 text-right">$${b.amounts['05']}</td><td class="py-2 px-2 text-right">$${b.amounts['06']}</td></tr>`);
                 });
                 tbody.innerHTML = htmlBuf.join('');
                 
