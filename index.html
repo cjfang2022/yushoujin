@@ -4,11 +4,11 @@
     <!--
       ========================================================
       御守金 - 家庭收支紀錄系統
-      版本修改日期: 2026-07-12 15:10
+      版本修改日期: 2026-07-12 15:46
       修改內容: 
-      1. 【新增功能】首頁儀表板新增「年/月」篩選器，數據與圖表支援動態區間顯示。
-      2. 【介面修復】解決手機端「預算管家」標題與月份選擇器溢出畫面的跑版問題。
-      3. 【雲端格式修正】強化 GAS 同步程式，徹底將收支紀錄的「日期」及預算的「年分」固定為純文字並靠左對齊。
+      1. 【介面升級】「記帳與明細」改版為「新增收支」與「歷史明細」雙頁籤切換設計，版面更簡潔，並支援編輯時自動跳轉。
+      2. 【操作統一】首頁儀表板的「年/月」篩選器，全面升級為帶有左右快速切換箭頭的按鈕組件，與預算頁面看齊。
+      3. 【手機端修復】修正「年度預算總覽」中，原生下拉箭頭與「年」字樣重疊的問題。
       ========================================================
     -->
     <meta charset="UTF-8">
@@ -270,11 +270,27 @@
                     <h2 class="font-black text-slate-800 text-xl flex items-center gap-2">
                         <span>📊 首頁儀表板</span>
                     </h2>
-                    <div class="flex items-center bg-slate-100 p-1 rounded-xl shadow-inner border border-slate-200 w-full sm:w-auto">
-                        <select id="dash-filter-year" onchange="renderDashboard()" class="w-full sm:w-auto bg-white text-slate-700 text-sm font-bold rounded-lg px-3 py-1.5 focus:outline-none shadow-sm cursor-pointer text-center appearance-none"></select>
-                        <span class="px-2 text-slate-400 font-bold">-</span>
-                        <select id="dash-filter-month" onchange="renderDashboard()" class="w-full sm:w-auto bg-white text-slate-700 text-sm font-bold rounded-lg px-3 py-1.5 focus:outline-none shadow-sm cursor-pointer text-center appearance-none"></select>
+                    
+                    <!-- 首頁儀表板的年月篩選器 (已升級按鈕式) -->
+                    <div class="flex flex-wrap items-center gap-2">
+                        <div class="flex items-center bg-slate-100 rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                            <button onclick="navigateDashYear(-1)" class="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-400 hover:text-slate-600 text-[10px] font-bold border-r border-slate-200">◀</button>
+                            <div class="flex items-center px-1">
+                                <select id="dash-filter-year" onchange="renderDashboard()" class="bg-transparent text-sm font-black text-slate-700 focus:outline-none cursor-pointer text-center appearance-none pl-2"></select>
+                                <span class="text-slate-500 font-bold text-xs pointer-events-none pr-2">年</span>
+                            </div>
+                            <button onclick="navigateDashYear(1)" class="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-400 hover:text-slate-600 text-[10px] font-bold border-l border-slate-200">▶</button>
+                        </div>
+                        <div class="flex items-center bg-slate-100 rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                            <button onclick="navigateDashMonth(-1)" class="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-400 hover:text-slate-600 text-[10px] font-bold border-r border-slate-200">◀</button>
+                            <div class="flex items-center px-1">
+                                <select id="dash-filter-month" onchange="renderDashboard()" class="bg-transparent text-sm font-black text-slate-700 focus:outline-none cursor-pointer text-center appearance-none pl-2"></select>
+                                <span class="text-slate-500 font-bold text-xs pointer-events-none pr-2">月</span>
+                            </div>
+                            <button onclick="navigateDashMonth(1)" class="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-400 hover:text-slate-600 text-[10px] font-bold border-l border-slate-200">▶</button>
+                        </div>
                     </div>
+
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -348,15 +364,25 @@
             </section>
 
             <section id="tab-transactions" class="space-y-6 tab-content hidden">
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 lg:col-span-1 h-fit flex flex-col space-y-4">
-                        <div class="grid grid-cols-2 gap-1 bg-slate-100 p-1 rounded-xl">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    
+                    <!-- 記帳與明細 分頁切換 -->
+                    <div class="flex justify-center mb-6">
+                        <div class="bg-slate-100 p-1 rounded-xl inline-flex shadow-inner">
+                            <button onclick="switchTxMode('add')" id="btn-tx-mode-add" class="px-6 py-2 rounded-lg font-bold text-sm bg-white shadow-sm text-emerald-700 transition">新增收支紀錄</button>
+                            <button onclick="switchTxMode('history')" id="btn-tx-mode-history" class="px-6 py-2 rounded-lg font-bold text-sm text-slate-500 hover:text-slate-800 transition">收支歷史明細</button>
+                        </div>
+                    </div>
+
+                    <!-- 新增收支紀錄區塊 -->
+                    <div id="tx-view-add" class="max-w-3xl mx-auto flex flex-col space-y-4">
+                        <div class="grid grid-cols-2 gap-1 bg-slate-100 p-1 rounded-xl mb-2 max-w-sm mx-auto w-full">
                             <button onclick="toggleInputMode('manual')" id="btn-mode-manual" class="py-1.5 rounded-lg text-xs font-bold transition shadow-sm bg-white text-emerald-800">✍️ 手動輸入</button>
                             <button onclick="toggleInputMode('ai')" id="btn-mode-ai" class="py-1.5 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-800 flex items-center justify-center space-x-1"><span>🤖 AI 快速記帳</span></button>
                         </div>
 
                         <div id="form-container-manual" class="space-y-4">
-                            <h3 id="form-title" class="font-bold text-slate-800 text-base flex items-center space-x-2"><span>✍️ 新增收支紀錄</span></h3>
+                            <h3 id="form-title" class="font-bold text-slate-800 text-base flex items-center space-x-2 border-b border-slate-100 pb-2"><span>✍️ 新增/編輯紀錄</span></h3>
                             <form id="transaction-form" onsubmit="handleTransactionSubmit(event)" class="space-y-4">
                                 <input type="hidden" id="tx-id">
                                 <div>
@@ -398,15 +424,15 @@
                                         <input type="text" id="tx-note" placeholder="例如：好市多補貨..." class="w-full bg-slate-50 border border-slate-200 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500">
                                     </div>
                                 </div>
-                                <div class="flex space-x-2 pt-2">
-                                    <button type="button" id="btn-cancel-edit" onclick="resetForm()" class="hidden flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 py-2.5 rounded-xl text-xs font-bold transition">取消編輯</button>
-                                    <button type="submit" class="flex-[2] bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-xs font-bold transition shadow-md">儲存紀錄</button>
+                                <div class="flex space-x-2 pt-2 border-t border-slate-100 mt-4">
+                                    <button type="button" id="btn-cancel-edit" onclick="resetForm()" class="hidden flex-1 mt-4 bg-slate-200 hover:bg-slate-300 text-slate-700 py-2.5 rounded-xl text-xs font-bold transition">取消編輯</button>
+                                    <button type="submit" class="flex-[2] mt-4 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-xs font-bold transition shadow-md">儲存紀錄</button>
                                 </div>
                             </form>
                         </div>
 
                         <div id="form-container-ai" class="hidden space-y-4">
-                            <h3 class="font-bold text-slate-800 text-base flex items-center space-x-2"><span>🤖 AI 語意記帳</span></h3>
+                            <h3 class="font-bold text-slate-800 text-base flex items-center space-x-2 border-b border-slate-100 pb-2"><span>🤖 AI 語意記帳</span></h3>
                             <p class="text-xs text-slate-400 leading-relaxed">可以直接輸入日常口語對話，或是上傳發票照片，AI 會自動為您多重歸類！</p>
                             <div class="space-y-3">
                                 <div class="relative">
@@ -449,7 +475,8 @@
                         </div>
                     </div>
 
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 lg:col-span-2 flex flex-col min-h-[450px]">
+                    <!-- 收支歷史明細區塊 -->
+                    <div id="tx-view-history" class="hidden flex flex-col min-h-[450px]">
                         <div class="flex flex-col gap-4 pb-4 border-b border-slate-100 mb-4">
                             <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
                                 <h3 class="font-bold text-slate-800 text-lg flex items-center space-x-2 shrink-0"><span>📋 收支歷史明細</span></h3>
@@ -511,10 +538,9 @@
                     <!-- 月度預算規劃 -->
                     <div id="budget-view-monthly">
                         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4">
-                            <!-- ✅ FIX: Changed to flex-wrap to prevent overflow on mobile -->
                             <div class="flex flex-wrap items-center gap-3">
                                 <h2 class="font-bold text-slate-800 text-xl flex items-center space-x-2 shrink-0"><span>🎯 月度預算規劃</span></h2>
-                                <div class="flex items-center gap-2">
+                                <div class="flex flex-wrap items-center gap-2">
                                     <div class="flex items-center bg-slate-100 rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                                         <button onclick="navigateBudgetYear(-1)" class="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-400 hover:text-slate-600 text-[10px] font-bold border-r border-slate-200">◀</button>
                                         <div class="flex items-center px-1">
@@ -573,13 +599,14 @@
                     <div id="budget-view-annual" class="hidden">
                         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 border-b border-slate-100 pb-4">
                             <h2 class="font-bold text-slate-800 text-xl flex items-center space-x-2"><span>📅 年度預算總覽</span></h2>
+                            <!-- 年度預算總覽的篩選器，已升級與月度看齊，加入 appearance-none -->
                             <div class="flex items-center bg-slate-100 rounded-xl border border-slate-200 shadow-sm overflow-hidden w-fit">
-                                <button onclick="navigateAnnualYear(-1)" class="px-3 py-2 bg-white hover:bg-slate-50 text-slate-400 text-xs font-bold border-r border-slate-200">◀</button>
-                                <div class="flex items-center px-2">
-                                    <select id="annual-year-select" onchange="renderAnnualBudget()" class="bg-transparent text-sm font-black text-slate-700 focus:outline-none cursor-pointer pl-2"></select>
-                                    <span class="text-slate-500 font-bold text-xs pointer-events-none pr-2">年度</span>
+                                <button onclick="navigateAnnualYear(-1)" class="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-400 hover:text-slate-600 text-[10px] font-bold border-r border-slate-200">◀</button>
+                                <div class="flex items-center px-1">
+                                    <select id="annual-year-select" onchange="renderAnnualBudget()" class="bg-transparent text-sm font-black text-slate-700 focus:outline-none cursor-pointer text-center appearance-none pl-2"></select>
+                                    <span class="text-slate-500 font-bold text-xs pointer-events-none pr-2">年</span>
                                 </div>
-                                <button onclick="navigateAnnualYear(1)" class="px-3 py-2 bg-white hover:bg-slate-50 text-slate-400 text-xs font-bold border-l border-slate-200">▶</button>
+                                <button onclick="navigateAnnualYear(1)" class="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-400 hover:text-slate-600 text-[10px] font-bold border-l border-slate-200">▶</button>
                             </div>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -755,7 +782,7 @@
                                         </ol>
                                         <div class="relative mt-3">
                                             <!-- GAS Script Content updated with setNumberFormat("@").setHorizontalAlignment("left") for both sheets -->
-                                            <textarea id="gas-code-box" readonly class="w-full h-32 bg-slate-900 text-slate-100 font-mono text-[10px] p-2.5 rounded-lg focus:outline-none select-all">// Google Apps Script 同步預覽版 (2026-07-12 固定靠左純文字修復版)
+                                            <textarea id="gas-code-box" readonly class="w-full h-32 bg-slate-900 text-slate-100 font-mono text-[10px] p-2.5 rounded-lg focus:outline-none select-all">// Google Apps Script 同步預覽版 (2026-07-12 固定靠左純文字與欄位順序修復版)
 const ACCESS_PASSWORD = "請設定您的密碼"; 
 const rId = () => Math.random().toString(36).substring(2, 8);
 function onEdit(e) {
@@ -956,7 +983,7 @@ function overwriteAllData(sp, txList, bgList) {
                     if (b.type === 'expense' && b.parentCat === '其他支出' && b.subCat === '其他未分類支出') b.subCat = '未分類支出';
                     if (b.type === 'income' && b.parentCat === '其他收入' && b.subCat === '其他收入') b.subCat = '未分類收入';
                     
-                    b.id = b.id.includes('bg-') ? b.id : `bg-${b.year}-${b.type}-${b.parentCat}-${b.subCat}`;
+                    b.id = b.id.includes('bg-') ? b.id : `bg-${shortId()}-${shortId()}`;
                     newYearBg[`${b.type}_${b.parentCat}_${b.subCat}`] = b;
                     if (k !== `${b.type}_${b.parentCat}_${b.subCat}`) bgChanged = true;
                 });
@@ -996,7 +1023,7 @@ function overwriteAllData(sp, txList, bgList) {
             if (ays) { ays.innerHTML = ''; for(let y=currentYearNum-2; y<=currentYearNum+3; y++) ays.innerHTML += `<option value="${y}">${y}</option>`; ays.value = currentYearNum; }
             initBudgetInputs();
             document.getElementById('confirm-modal-btn-action').onclick = function() { if (confirmActionCallback) confirmActionCallback(); closeConfirmModal(); };
-            setManagerType('expense'); switchTab('dashboard');
+            setManagerType('expense'); switchTab('dashboard'); switchTxMode('add');
         };
 
         function getBudgetForCategory(yearMonth, parentCat, subCat = null) {
@@ -1030,7 +1057,7 @@ function overwriteAllData(sp, txList, bgList) {
             if (dy) {
                 let cv = dy.value || currentYearNum.toString();
                 let htmlBuf = [];
-                years.forEach(y => htmlBuf.push(`<option value="${y}">${y} 年</option>`));
+                years.forEach(y => htmlBuf.push(`<option value="${y}">${y}</option>`));
                 dy.innerHTML = htmlBuf.join('');
                 dy.value = cv;
             }
@@ -1039,9 +1066,25 @@ function overwriteAllData(sp, txList, bgList) {
         function ensureYearOptionExists(y, selectId) {
             const ys = document.getElementById(selectId); if(!ys) return;
             if(!Array.from(ys.options).some(o => o.value == y)) {
-                 const o = document.createElement('option'); o.value = y; o.text = y; ys.appendChild(o);
-                 const opts = Array.from(ys.options).sort((a,b)=>parseInt(a.value)-parseInt(b.value)); ys.innerHTML=''; opts.forEach(op => ys.appendChild(op));
+                 const o = document.createElement('option'); o.value = y;
+                 // 如果是交易過濾器的年份有帶" 年"
+                 if(selectId === 'filter-year' && y !== 'all') o.text = y + " 年";
+                 else o.text = y; 
+                 ys.appendChild(o);
+                 const opts = Array.from(ys.options).sort((a,b)=>{
+                     if(a.value==='all') return -1; if(b.value==='all') return 1;
+                     return parseInt(a.value)-parseInt(b.value);
+                 }); 
+                 ys.innerHTML=''; opts.forEach(op => ys.appendChild(op));
             }
+        }
+
+        function navigateDashYear(d) { let ys = document.getElementById('dash-filter-year'); if (!ys) return; let y = parseInt(ys.value)+d; ensureYearOptionExists(y, 'dash-filter-year'); ys.value = y; renderDashboard(); }
+        function navigateDashMonth(d) {
+            let ys = document.getElementById('dash-filter-year'), ms = document.getElementById('dash-filter-month'); if (!ys || !ms) return;
+            let date = new Date(parseInt(ys.value), parseInt(ms.value)-1+d, 1);
+            ensureYearOptionExists(date.getFullYear(), 'dash-filter-year');
+            ys.value = date.getFullYear(); ms.value = ("0"+(date.getMonth()+1)).slice(-2); renderDashboard();
         }
 
         function navigateBudgetYear(d) { let ys = document.getElementById('budget-year-select'); if (!ys) return; let y = parseInt(ys.value)+d; ensureYearOptionExists(y, 'budget-year-select'); ys.value = y; handleBudgetPeriodChange(); }
@@ -1060,6 +1103,13 @@ function overwriteAllData(sp, txList, bgList) {
             document.querySelectorAll('.tab-btn').forEach(b=>b.className="flex-1 lg:flex-initial flex items-center justify-center lg:justify-start space-x-3 px-4 py-3 rounded-xl font-medium transition duration-200 tab-btn text-slate-600 hover:bg-slate-100");
             const btn = document.getElementById(`btn-${id}`); if(btn) btn.className="flex-1 lg:flex-initial flex items-center justify-center lg:justify-start space-x-3 px-4 py-3 rounded-xl font-medium transition duration-200 tab-btn bg-emerald-100 text-emerald-800 shadow-sm border border-emerald-200";
             if(id==='dashboard') renderDashboard(); else if(id==='transactions') renderTransactionTable(); else if(id==='budget') initBudgetInputs(); else if(id==='reports') {initReportConfig(); generateReport();} else if(id==='settings') renderCategoryLists();
+        }
+
+        function switchTxMode(m) {
+            document.getElementById('btn-tx-mode-add').className = m==='add'?"px-6 py-2 rounded-lg font-bold text-sm bg-white shadow-sm text-emerald-700 transition":"px-6 py-2 rounded-lg font-bold text-sm text-slate-500 hover:text-slate-800 transition";
+            document.getElementById('btn-tx-mode-history').className = m==='history'?"px-6 py-2 rounded-lg font-bold text-sm bg-white shadow-sm text-emerald-700 transition":"px-6 py-2 rounded-lg font-bold text-sm text-slate-500 hover:text-slate-800 transition";
+            document.getElementById('tx-view-add').classList.toggle('hidden', m!=='add');
+            document.getElementById('tx-view-history').classList.toggle('hidden', m!=='history');
         }
 
         function showToast(m, t="success") {
@@ -1109,7 +1159,7 @@ function overwriteAllData(sp, txList, bgList) {
                         let b = budgets[y][k];
                         if (b.type===activeMgrType && b.parentCat===old) {
                             deletedBudgetLog.push({ id: b.id, updatedAt: Date.now() });
-                            b.parentCat=newN; b.id=`bg-${y}-${activeMgrType}-${newN}-${b.subCat}`; b.updatedAt=Date.now();
+                            b.parentCat=newN; b.id=`bg-${shortId()}-${shortId()}`; b.updatedAt=Date.now();
                             budgets[y][`${activeMgrType}_${newN}_${b.subCat}`] = b; delete budgets[y][k];
                         }
                     });
@@ -1184,7 +1234,7 @@ function overwriteAllData(sp, txList, bgList) {
                 transactions.unshift({id:'tx-'+shortId()+'-'+shortId(), date:cleanDateToYMD(document.getElementById(`ai-date-${i}`).value), type:document.getElementById(`ai-type-${i}`).value, parentCat:document.getElementById(`ai-parent-${i}`).value, subCat:document.getElementById(`ai-sub-${i}`).value, payMethod:document.getElementById(`ai-pay-${i}`).value||'現金', amount:parseFloat(document.getElementById(`ai-amount-${i}`).value)||0, note:document.getElementById(`ai-note-${i}`).value.trim(), updatedAt:Date.now()});
             }); localStorage.setItem('ok_transactions', JSON.stringify(transactions)); showToast(`🎉 成功匯入 ${chks.length} 筆`, "success");
             if(systemSettings.autoSync && systemSettings.googleScriptUrl) analyzeAndShowSyncDiff();
-            document.getElementById('ai-raw-text').value=''; removeAIImage(); document.getElementById('ai-preview-section').classList.add('hidden'); parsedAITransactions=[];
+            cancelAIImport();
             populateDynamicYearDropdowns(); initFilterOptions(); renderTransactionTable(); 
         }
 
@@ -1349,8 +1399,8 @@ function overwriteAllData(sp, txList, bgList) {
             resetForm(); populateDynamicYearDropdowns(); renderTransactionTable(); initFilterOptions();
         }
 
-        function resetForm() { document.getElementById('transaction-form').reset(); document.getElementById('tx-id').value=''; document.getElementById('tx-pay-method').value='現金'; document.getElementById('tx-date').value=cleanDateToYMD(todayDateObj); document.getElementById('form-title').innerHTML="<span>✍️ 新增收支紀錄</span>"; document.getElementById('btn-cancel-edit').classList.add('hidden'); setFormType('expense'); }
-        function editTransaction(id) { let i=transactions.find(t=>t.id===id); if(!i)return; toggleInputMode('manual'); document.getElementById('form-title').innerHTML=`<span>✏️ 編輯</span>`; document.getElementById('btn-cancel-edit').classList.remove('hidden'); document.getElementById('tx-id').value=i.id; document.getElementById('tx-date').value=i.date; document.getElementById('tx-amount').value=i.amount; document.getElementById('tx-pay-method').value=i.payMethod||'現金'; document.getElementById('tx-note').value=i.note; setFormType(i.type); document.getElementById('tx-parent-cat').value=i.parentCat; updateSubCategoryDropdown(); document.getElementById('tx-sub-cat').value=i.subCat; document.getElementById('transaction-form').scrollIntoView({behavior:'smooth'}); }
+        function resetForm() { document.getElementById('transaction-form').reset(); document.getElementById('tx-id').value=''; document.getElementById('tx-pay-method').value='現金'; document.getElementById('tx-date').value=cleanDateToYMD(todayDateObj); document.getElementById('form-title').innerHTML="<span>✍️ 新增/編輯紀錄</span>"; document.getElementById('btn-cancel-edit').classList.add('hidden'); setFormType('expense'); }
+        function editTransaction(id) { let i=transactions.find(t=>t.id===id); if(!i)return; switchTxMode('add'); toggleInputMode('manual'); document.getElementById('btn-cancel-edit').classList.remove('hidden'); document.getElementById('tx-id').value=i.id; document.getElementById('tx-date').value=i.date; document.getElementById('tx-amount').value=i.amount; document.getElementById('tx-pay-method').value=i.payMethod||'現金'; document.getElementById('tx-note').value=i.note; setFormType(i.type); document.getElementById('tx-parent-cat').value=i.parentCat; updateSubCategoryDropdown(); document.getElementById('tx-sub-cat').value=i.subCat; document.getElementById('transaction-form').scrollIntoView({behavior:'smooth'}); }
         function deleteTransaction(id) { openConfirmModalCustom("❌","刪除這筆？","排入雲端刪除","確認刪除",()=>{ let ix=transactions.findIndex(t=>t.id===id); if(ix!==-1){ deletedTxLog.push({id:transactions[ix].id, updatedAt:Date.now()}); localStorage.setItem('ok_deleted_tx_log',JSON.stringify(deletedTxLog)); transactions.splice(ix,1); localStorage.setItem('ok_transactions',JSON.stringify(transactions)); showToast("🗑️ 已刪除", "info"); if(systemSettings.autoSync) analyzeAndShowSyncDiff(); renderTransactionTable(); initFilterOptions(); } }); }
 
         function initFilterOptions() { 
@@ -1366,7 +1416,7 @@ function overwriteAllData(sp, txList, bgList) {
             if(dm) {
                 let dcv = dm.value || ("0"+currentMonthNum).slice(-2);
                 dm.innerHTML='';
-                for(let i=1;i<=12;i++) dm.innerHTML+=`<option value="${("0"+i).slice(-2)}">${("0"+i).slice(-2)} 月</option>`;
+                for(let i=1;i<=12;i++) dm.innerHTML+=`<option value="${("0"+i).slice(-2)}">${("0"+i).slice(-2)}</option>`;
                 dm.value=dcv;
             }
             
